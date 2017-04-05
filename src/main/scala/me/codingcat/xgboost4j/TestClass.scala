@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package me.codingcat
+package me.codingcat.xgboost4j
 
 object TestClass {
 }
