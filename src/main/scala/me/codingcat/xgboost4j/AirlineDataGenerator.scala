@@ -17,5 +17,29 @@
 
 package me.codingcat.xgboost4j
 
-object TestClass {
+import java.io.File
+
+import scala.collection.mutable.ListBuffer
+
+import com.typesafe.config.ConfigFactory
+
+import org.apache.spark.sql.DataFrame
+
+object AirlineDataGenerator {
+
+  private val rawInputDFList = new ListBuffer[DataFrame]
+
+  def main(args: Array[String]): Unit = {
+    import scala.collection.JavaConverters._
+    val config = ConfigFactory.parseFile(new File(args(0)))
+    // 1. compile the list of input files (different years)
+    val inputFileList = config.getStringList(
+      "me.codingcat.xgboost4j.dataset.airline.paths")
+    for (airlineFilePath <- inputFileList.asScala) {
+        
+    }
+    // 2. generate DataFrame of the all airline data
+    // 3. extract columns
+    // 4. sample from dataframe and save to output path
+  }
 }

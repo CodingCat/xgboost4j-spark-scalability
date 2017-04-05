@@ -9,17 +9,13 @@ scalaVersion := "2.11.8"
 
 val sparkVersion = "2.1.0"
 
-libraryDependencies ++= Seq("org.slf4j" % "slf4j-api" % "1.7.5",
-  "com.github.scopt" %% "scopt" % "3.3.0",
-  "com.twitter" %% "util-jvm" % "6.23.0" % "provided",
+libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
-  "org.yaml" % "snakeyaml" % "1.17",
-  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
   "org.scalatest" % "scalatest_2.11" % "3.0.1",
+  "com.typesafe" % "config" % "1.3.1",
   "org.scala-lang" % "scala-library" % s"${scalaVersion.value}",
   "org.apache.spark" % "spark-sql_2.11" % s"$sparkVersion",
   "org.apache.spark" % "spark-mllib_2.11" % s"$sparkVersion",
-  "org.apache.spark" % "spark-hive_2.11" % s"$sparkVersion",
   "net.java.dev.jets3t" % "jets3t" % "0.9.4")
 
 parallelExecution in Test := false
