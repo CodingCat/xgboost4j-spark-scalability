@@ -23,7 +23,7 @@ import scala.collection.mutable.ListBuffer
 
 import com.typesafe.config.ConfigFactory
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
 
 
@@ -43,6 +43,6 @@ object AirlineDataGenerator {
     val extractedDF = dfWithNewCol.select("Month", "DayofMonth", "DayOfWeek", "DepTime",
       "UniqueCarrier", "Origin", "Dest", "Distance", "dep_delayed_15min")
     val sampledDF = extractedDF.sample(withReplacement = false, ratioRate)
-    sampledDF.write.parquet(outputDir)
+    sampledDF.write.mode(SaveMode.Overwrite).parquet(outputDir)
   }
 }
