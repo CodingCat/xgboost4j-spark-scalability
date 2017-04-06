@@ -23,23 +23,33 @@ import scala.collection.mutable.ListBuffer
 
 import com.typesafe.config.ConfigFactory
 
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
+
 
 object AirlineDataGenerator {
 
   private val rawInputDFList = new ListBuffer[DataFrame]
 
   def main(args: Array[String]): Unit = {
+
+    val sparkSession = SparkSession.builder().getOrCreate()
+
     import scala.collection.JavaConverters._
     val config = ConfigFactory.parseFile(new File(args(0)))
-    // 1. compile the list of input files (different years)
     val inputFileList = config.getStringList(
       "me.codingcat.xgboost4j.dataset.airline.paths")
+    val ratioRate = config.getDouble("me.codingcat.xgboost4j.dataset.airline.sampleRate")
+    val outputDir = config.getString("me.codingcat.xgboost4j.dataset.airline.outputDir")
     for (airlineFilePath <- inputFileList.asScala) {
-        
+      rawInputDFList +=  sparkSession.read.csv(airlineFilePath)
     }
-    // 2. generate DataFrame of the all airline data
-    // 3. extract columns
-    // 4. sample from dataframe and save to output path
+    val mergedDF = rawInputDFList.reduce(_ union _)
+    mergedDF.withColumn("dep_delayed_15min", udf(
+      (depDelay: String) => if (depDelay.toInt >= 15) true else false).apply(col("DepDelay")))
+    val extractedDF = mergedDF.select("Month", "DayofMonth", "DayOfWeek", "DepTime",
+      "UniqueCarrier", "Origin", "Dest", "Distance", "dep_delayed_15min")
+    val sampledDF = extractedDF.sample(withReplacement = false, ratioRate)
+    sampledDF.write.parquet(outputDir)
   }
 }
