@@ -37,7 +37,7 @@ object AirlineDataGenerator {
     val inputFile = config.getString("me.codingcat.xgboost4j.dataset.airline.inputPath")
     val ratioRate = config.getDouble("me.codingcat.xgboost4j.dataset.airline.sampleRate")
     val outputDir = config.getString("me.codingcat.xgboost4j.dataset.airline.outputDir")
-    val mergedDF = sparkSession.read.csv(inputFile)
+    val mergedDF = sparkSession.read.option("header", "true").csv(inputFile)
     mergedDF.withColumn("dep_delayed_15min", udf(
       (depDelay: String) => if (depDelay.toInt >= 15) true else false).apply(col("DepDelay")))
     val extractedDF = mergedDF.select("Month", "DayofMonth", "DayOfWeek", "DepTime",
