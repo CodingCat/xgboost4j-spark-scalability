@@ -29,22 +29,15 @@ import org.apache.spark.sql.functions._
 
 object AirlineDataGenerator {
 
-  private val rawInputDFList = new ListBuffer[DataFrame]
-
   def main(args: Array[String]): Unit = {
 
     val sparkSession = SparkSession.builder().getOrCreate()
 
-    import scala.collection.JavaConverters._
     val config = ConfigFactory.parseFile(new File(args(0)))
-    val inputFileList = config.getStringList(
-      "me.codingcat.xgboost4j.dataset.airline.paths")
+    val inputFile = config.getString("me.codingcat.xgboost4j.dataset.airline.inputPath")
     val ratioRate = config.getDouble("me.codingcat.xgboost4j.dataset.airline.sampleRate")
     val outputDir = config.getString("me.codingcat.xgboost4j.dataset.airline.outputDir")
-    for (airlineFilePath <- inputFileList.asScala) {
-      rawInputDFList +=  sparkSession.read.csv(airlineFilePath)
-    }
-    val mergedDF = rawInputDFList.reduce(_ union _)
+    val mergedDF = sparkSession.read.csv(inputFile)
     mergedDF.withColumn("dep_delayed_15min", udf(
       (depDelay: String) => if (depDelay.toInt >= 15) true else false).apply(col("DepDelay")))
     val extractedDF = mergedDF.select("Month", "DayofMonth", "DayOfWeek", "DepTime",
