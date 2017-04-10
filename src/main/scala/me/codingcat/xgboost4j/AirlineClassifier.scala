@@ -21,7 +21,7 @@ import java.io.File
 
 import com.typesafe.config.{Config, ConfigFactory}
 import me.codingcat.xgboost4j.common.Utils
-import ml.dmlc.xgboost4j.scala.spark.XGBoost
+import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostEstimator}
 
 import org.apache.spark.sql.SparkSession
 
@@ -40,6 +40,6 @@ object AirlineClassifier {
       params = params, round = trainingRounds, nWorkers = numWorkers)
 
     // TODO: evaluation part
-
+    println(xgbModel.parent.asInstanceOf[XGBoostEstimator].uid)
   }
 }
