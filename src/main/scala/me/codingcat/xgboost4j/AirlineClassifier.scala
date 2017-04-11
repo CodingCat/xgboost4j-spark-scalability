@@ -36,6 +36,8 @@ object AirlineClassifier {
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(trainingPath)
 
+
+
     val xgbModel = XGBoost.trainWithDataFrame(trainingSet,
       params = params, round = trainingRounds, nWorkers = numWorkers)
 
