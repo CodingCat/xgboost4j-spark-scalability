@@ -42,9 +42,8 @@ object AirlineDataGenerator {
       (depDelay: String) => if (depDelay.toInt >= 15) true else false).apply(col("DepDelay")))
     val extractedDF = dfWithNewCol.select("Month", "DayofMonth", "DayOfWeek", "DepTime",
       "UniqueCarrier", "Origin", "Dest", "Distance", "dep_delayed_15min")
-    val convertedDF = extractedDF.selectExpr("select Month, DayOfMonth, DayOfWeek, DepTime," +
-      " UniqueCarrier, Origin, " +
-      "Dest, CAST(Distance As Float) Distance, dep_delayed_15min")
+    val convertedDF = extractedDF.selectExpr("Month", "DayOfMonth", "DayOfWeek", "DepTime",
+      "UniqueCarrier", "Origin", "Dest", "CAST(Distance As Float) as Distance", "dep_delayed_15min")
     val sampledDF = convertedDF.sample(withReplacement = false, ratioRate)
     sampledDF.write.mode(SaveMode.Overwrite).parquet(outputDir)
   }
