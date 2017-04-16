@@ -32,7 +32,7 @@ object AirlineClassifier {
   private def buildPipeline(): Pipeline = {
     // string indexers
     val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("monthIdx")
-    val daysOfMonthIndexer = new StringIndexer().setInputCol("DayofMonth").
+    val daysOfMonthIndexer = new StringIndexer().setInputCol("DayOfMonth").
       setOutputCol("dayOfMonthIdx")
     val daysOfWeekIndexer = new StringIndexer().setInputCol("DayOfWeek").
       setOutputCol("daysOfWeekIdx")
