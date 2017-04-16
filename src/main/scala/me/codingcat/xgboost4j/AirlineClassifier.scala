@@ -81,7 +81,7 @@ object AirlineClassifier {
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(trainingPath)
-
+    trainingSet.show()
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
     transformedTrainingSet.show()
