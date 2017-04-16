@@ -69,8 +69,8 @@ object AirlineClassifier {
   }
 
   private def runPreprocessingPipeline(pipeline: Pipeline, trainingSet: DataFrame): DataFrame = {
-    pipeline.fit(trainingSet).transform(trainingSet).select(
-      "features", "case when dep_delayed_15min == true 1.0 else 0.0 ")
+    pipeline.fit(trainingSet).transform(trainingSet).selectExpr(
+      "features", "case when dep_delayed_15min == true 1.0 else 0.0 as label")
   }
 
   def main(args: Array[String]): Unit = {
