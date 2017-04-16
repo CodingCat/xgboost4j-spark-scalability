@@ -21,11 +21,57 @@ import java.io.File
 
 import com.typesafe.config.{Config, ConfigFactory}
 import me.codingcat.xgboost4j.common.Utils
-import ml.dmlc.xgboost4j.scala.spark.XGBoost
+import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostEstimator, XGBoostModel}
 
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object AirlineClassifier {
+
+  private def buildPreprocessingPipeline(): Pipeline = {
+    // string indexers
+    val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("monthIdx")
+    val daysOfMonthIndexer = new StringIndexer().setInputCol("DayOfMonth").
+      setOutputCol("dayOfMonthIdx")
+    val daysOfWeekIndexer = new StringIndexer().setInputCol("DayOfWeek").
+      setOutputCol("daysOfWeekIdx")
+    val uniqueCarrierIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol(
+      "uniqueCarrierIndex")
+    val originIndexer = new StringIndexer().setInputCol("Origin").setOutputCol(
+      "originIndexer")
+    val destIndexer = new StringIndexer().setInputCol("Dest").setOutputCol(
+      "destIndexer")
+    // one-hot encoders
+    val monthEncoder = new OneHotEncoder().setInputCol("monthIdx").
+      setOutputCol("encodedMonth")
+    val daysOfMonthEncoder = new OneHotEncoder().setInputCol("dayOfMonthIdx").
+      setOutputCol("encodedDaysOfMonth")
+    val daysOfWeekEncoder = new OneHotEncoder().setInputCol("daysOfWeekIdx").
+      setOutputCol("encodedDaysOfWeek")
+    val uniqueCarrierEncoder = new OneHotEncoder().setInputCol("uniqueCarrierIndex").
+      setOutputCol("encodedCarrier")
+    val originEncoder = new OneHotEncoder().setInputCol("originIndexer").
+      setOutputCol("encodedOrigin")
+    val destEncoder = new StringIndexer().setInputCol("destIndexer").setOutputCol(
+      "encodedDest")
+
+
+    val vectorAssembler = new VectorAssembler().setInputCols(
+      Array("encodedMonth", "encodedDaysOfMonth", "encodedDaysOfWeek", "DepTime",
+        "encodedCarrier", "encodedOrigin", "encodedDest", "Distance")
+    ).setOutputCol("features")
+    val pipeline = new Pipeline().setStages(
+      Array(monthIndexer, daysOfMonthIndexer, daysOfWeekIndexer,
+        uniqueCarrierIndexer, originIndexer, destIndexer, monthEncoder, daysOfMonthEncoder,
+        daysOfWeekEncoder, uniqueCarrierEncoder, originEncoder, destEncoder, vectorAssembler))
+    pipeline
+  }
+
+  private def runPreprocessingPipeline(pipeline: Pipeline, trainingSet: DataFrame): DataFrame = {
+    pipeline.fit(trainingSet).transform(trainingSet).selectExpr(
+      "features", "case when dep_delayed_15min = true then 1.0 else 0.0 end as label")
+  }
 
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.parseFile(new File(args(0)))
@@ -35,11 +81,10 @@ object AirlineClassifier {
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(trainingPath)
-
-    val xgbModel = XGBoost.trainWithDataFrame(trainingSet,
+    val pipeline = buildPreprocessingPipeline()
+    val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
+    val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet,
       params = params, round = trainingRounds, nWorkers = numWorkers)
-
-    // TODO: evaluation part
-
+    xgbModel.transform(transformedTrainingSet).show()
   }
 }
