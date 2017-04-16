@@ -70,7 +70,7 @@ object AirlineClassifier {
 
   private def runPreprocessingPipeline(pipeline: Pipeline, trainingSet: DataFrame): DataFrame = {
     pipeline.fit(trainingSet).transform(trainingSet).selectExpr(
-      "features", "case when dep_delayed_15min == true 1.0 else 0.0 as label")
+      "features", "case when dep_delayed_15min = true then 1.0 else 0.0 end as label")
   }
 
   def main(args: Array[String]): Unit = {
@@ -81,10 +81,8 @@ object AirlineClassifier {
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(trainingPath)
-    trainingSet.show()
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
-    transformedTrainingSet.show()
     val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet,
       params = params, round = trainingRounds, nWorkers = numWorkers)
     xgbModel.transform(transformedTrainingSet).show()
