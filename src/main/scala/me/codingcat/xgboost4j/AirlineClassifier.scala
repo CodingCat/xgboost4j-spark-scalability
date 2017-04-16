@@ -29,7 +29,7 @@ import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object AirlineClassifier {
 
-  private def buildPipeline(): Pipeline = {
+  private def buildPreprocessingPipeline(): Pipeline = {
     // string indexers
     val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("monthIdx")
     val daysOfMonthIndexer = new StringIndexer().setInputCol("DayOfMonth").
@@ -56,26 +56,21 @@ object AirlineClassifier {
     val destEncoder = new StringIndexer().setInputCol("destIndexer").setOutputCol(
       "encodedDest")
 
+
     val vectorAssembler = new VectorAssembler().setInputCols(
       Array("encodedMonth", "encodedDaysOfMonth", "encodedDaysOfWeek", "DepTime",
-        "encodedCarrier", "encodedOrigin", "encodedDest", "Distance", "dep_delayed_15min")
+        "encodedCarrier", "encodedOrigin", "encodedDest", "Distance")
     ).setOutputCol("features")
     val pipeline = new Pipeline().setStages(
       Array(monthIndexer, daysOfMonthIndexer, daysOfWeekIndexer,
         uniqueCarrierIndexer, originIndexer, destIndexer, monthEncoder, daysOfMonthEncoder,
         daysOfWeekEncoder, uniqueCarrierEncoder, originEncoder, destEncoder, vectorAssembler))
     pipeline
-    /*
-    pipeline.fit(inputDF).transform(inputDF).drop("workClass", "education", "maritalStatus",
-      "occupation", "relationship", "race", "sex", "nativeCountry", "label")
-    */
   }
 
-  private def runPipeline(pipeline: Pipeline, trainingSet: DataFrame): DataFrame = {
+  private def runPreprocessingPipeline(pipeline: Pipeline, trainingSet: DataFrame): DataFrame = {
     pipeline.fit(trainingSet).transform(trainingSet).select(
-      "encodedMonth", "encodedDaysOfMonth", "encodedDaysOfWeek", "DepTime",
-      "encodedCarrier", "encodedOrigin", "encodedDest", "Distance", "dep_delayed_15min"
-    )
+      "features", "case when dep_delayed_15min == true 1.0 else 0.0 ")
   }
 
   def main(args: Array[String]): Unit = {
@@ -87,8 +82,9 @@ object AirlineClassifier {
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(trainingPath)
 
-    val pipeline = buildPipeline()
-    val transformedTrainingSet = runPipeline(pipeline, trainingSet)
+    val pipeline = buildPreprocessingPipeline()
+    val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
+    transformedTrainingSet.show()
     val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet,
       params = params, round = trainingRounds, nWorkers = numWorkers)
     xgbModel.transform(transformedTrainingSet).show()
