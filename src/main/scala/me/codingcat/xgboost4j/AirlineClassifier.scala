@@ -24,7 +24,9 @@ import me.codingcat.xgboost4j.common.Utils
 import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostEstimator, XGBoostModel}
 
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object AirlineClassifier {
@@ -73,6 +75,25 @@ object AirlineClassifier {
       "features", "case when dep_delayed_15min = true then 1.0 else 0.0 end as label")
   }
 
+  private def crossValidation(
+      xgbEstimator: XGBoostEstimator,
+      trainingSet: DataFrame): Unit = {
+    val paramGrid = new ParamGridBuilder()
+      .addGrid(xgbEstimator.eta, Array(0.01, 0.05, 0.1, 0.15, 0.2))
+      .addGrid(xgbEstimator.maxDepth, Array(2, 4, 6, 8, 10))
+      .addGrid(xgbEstimator.gamma, Array(0.2, 0.4, 0.6, 0.8, 1.0))
+      .addGrid(xgbEstimator.subSample, Array(0.7, 0.8, 0.9))
+      .build()
+    val cv = new CrossValidator()
+      .setEstimator(xgbEstimator)
+      .setEvaluator(new BinaryClassificationEvaluator())
+      .setEstimatorParamMaps(paramGrid)
+      .setNumFolds(5)
+    val cvModel = cv.fit(trainingSet)
+    println("====BEST MODEL====")
+    println(cvModel.bestModel.extractParamMap())
+  }
+
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.parseFile(new File(args(0)))
     val trainingPath = config.getString("me.codingcat.xgboost4j.airline.trainingPath")
@@ -83,8 +104,8 @@ object AirlineClassifier {
     val trainingSet = spark.read.parquet(trainingPath)
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
-    val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet,
-      params = params, round = trainingRounds, nWorkers = numWorkers)
-    xgbModel.transform(transformedTrainingSet).show()
+    val xgbEstimator = new XGBoostEstimator(params)
+    crossValidation(xgbEstimator, transformedTrainingSet)
+
   }
 }
