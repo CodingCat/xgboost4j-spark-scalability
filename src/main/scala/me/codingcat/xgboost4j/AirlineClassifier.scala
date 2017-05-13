@@ -105,6 +105,8 @@ object AirlineClassifier {
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
     val xgbEstimator = new XGBoostEstimator(params)
+    xgbEstimator.set(xgbEstimator.round, trainingRounds)
+    xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
     crossValidation(xgbEstimator, transformedTrainingSet)
 
   }
