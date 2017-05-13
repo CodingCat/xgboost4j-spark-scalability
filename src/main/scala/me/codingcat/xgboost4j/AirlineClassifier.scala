@@ -135,7 +135,7 @@ object AirlineClassifier {
       val dfWithTransformed = gradientBoostedTrees.fit(transformedTrainingSet)
       val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
       println("eval results: " + eval.evaluate(
-        dfWithTransformed.transform(transformedTrainingSet))
+        dfWithTransformed.transform(transformedTrainingSet)))
     }
   }
 }
