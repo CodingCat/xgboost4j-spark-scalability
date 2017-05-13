@@ -129,7 +129,6 @@ object AirlineClassifier {
 
     if (args.length > 2) {
       val xgbEstimator = new XGBoostEstimator(params)
-      xgbEstimator.set(xgbEstimator.useExternalMemory, true)
       xgbEstimator.set(xgbEstimator.round, trainingRounds)
       xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
       crossValidation(xgbEstimator, transformedTrainingSet, args(1))
