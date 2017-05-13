@@ -129,7 +129,7 @@ object AirlineClassifier {
       }
     } else {
       val gradientBoostedTrees = new GBTClassifier()
-      gradientBoostedTrees.setMaxBins(32)
+      gradientBoostedTrees.setMaxBins(1000)
       gradientBoostedTrees.setMaxIter(20)
       gradientBoostedTrees.setMaxDepth(7)
       gradientBoostedTrees.fit(transformedTrainingSet)
