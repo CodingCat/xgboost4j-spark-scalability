@@ -104,7 +104,7 @@ object AirlineClassifier {
     val trainingSet = spark.read.parquet(trainingPath)
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
-
+    import transformedTrainingSet.sparkSession.implicits._
     val repartitioned = transformedTrainingSet.repartition(numWorkers)
     println(repartitioned.mapPartitions(itr => Iterator(itr.toList.size)).collect().toList)
 
