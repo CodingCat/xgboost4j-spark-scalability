@@ -81,8 +81,8 @@ object AirlineClassifier {
       xgbEstimator: XGBoostEstimator,
       trainingSet: DataFrame): Unit = {
     val paramGrid = new ParamGridBuilder()
-      .addGrid(xgbEstimator.eta, Array(0.1, 0.15, 0.2))
-      .addGrid(xgbEstimator.maxDepth, Array(5, 7, 9, 11, 13, 15, 17, 20))
+      .addGrid(xgbEstimator.eta, Array(0.15, 0.2))
+      .addGrid(xgbEstimator.maxDepth, Array(10, 20))
       .build()
     val cv = new CrossValidator()
       .setEstimator(xgbEstimator)
@@ -107,7 +107,6 @@ object AirlineClassifier {
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
 
     val xgbEstimator = new XGBoostEstimator(params)
-    xgbEstimator.set(xgbEstimator.treeMethod, "hist")
     xgbEstimator.set(xgbEstimator.useExternalMemory, true)
     xgbEstimator.set(xgbEstimator.round, trainingRounds)
     xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
