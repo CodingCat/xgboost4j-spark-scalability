@@ -86,7 +86,8 @@ object AirlineClassifier {
       .build()
     val cv = new CrossValidator()
       .setEstimator(xgbEstimator)
-      .setEvaluator(new BinaryClassificationEvaluator())
+      .setEvaluator(new BinaryClassificationEvaluator().
+        setRawPredictionCol("probabilities").setLabelCol("label"))
       .setEstimatorParamMaps(paramGrid)
       .setNumFolds(5)
     val cvModel = cv.fit(trainingSet)
