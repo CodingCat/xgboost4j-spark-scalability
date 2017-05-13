@@ -24,11 +24,10 @@ import me.codingcat.xgboost4j.common.Utils
 import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostEstimator, XGBoostModel}
 
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification.GBTClassifier
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
-import org.apache.spark.mllib.tree.GradientBoostedTrees
-import org.apache.spark.mllib.tree.configuration.BoostingStrategy
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object AirlineClassifier {
@@ -77,21 +76,10 @@ object AirlineClassifier {
       "features", "case when dep_delayed_15min = true then 1.0 else 0.0 end as label")
   }
 
-  private def crossValidation(
+  private def crossValidationWithXGBoost(
       xgbEstimator: XGBoostEstimator,
       trainingSet: DataFrame,
       tuningParamsPath: String): Unit = {
-    /**
-     *  "max_depth" -> 6,
-    "min_child_weight" -> 1,
-    "gamma" -> 0,
-    "subsample" -> 1,
-    "colsample_bytree" -> 1,
-    "scale_pos_weight" -> 1,
-    "silent" -> 0,
-    "eta" -> 0.3,
-    "objective" -> "binary:logistic"
-     */
     val conf = ConfigFactory.parseFile(new File(tuningParamsPath))
     val paramGrid = new ParamGridBuilder()
       .addGrid(xgbEstimator.eta, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name))
@@ -118,6 +106,7 @@ object AirlineClassifier {
 
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.parseFile(new File(args(0)))
+    val libName = config.getString("me.codingcat.xgboost4j.lib")
     val trainingPath = config.getString("me.codingcat.xgboost4j.airline.trainingPath")
     val trainingRounds = config.getInt("me.codingcat.xgboost4j.rounds")
     val numWorkers = config.getInt("me.codingcat.xgboost4j.numWorkers")
@@ -127,15 +116,25 @@ object AirlineClassifier {
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
 
-    if (args.length >= 2) {
-      val xgbEstimator = new XGBoostEstimator(params)
-      xgbEstimator.set(xgbEstimator.round, trainingRounds)
-      xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
-      crossValidation(xgbEstimator, transformedTrainingSet, args(1))
+    if (libName == "xgboost") {
+      if (args.length >= 2) {
+        val xgbEstimator = new XGBoostEstimator(params)
+        xgbEstimator.set(xgbEstimator.round, trainingRounds)
+        xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
+        crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
+      } else {
+        // directly training
+        XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
+          nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
+      }
     } else {
-      // directly training
-      XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
-        nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
+      val gradientBoostedTrees = new GBTClassifier()
+      gradientBoostedTrees.setMaxBins(32)
+      gradientBoostedTrees.setMaxIter(20)
+      gradientBoostedTrees.setMaxDepth(7)
+      gradientBoostedTrees.fit(transformedTrainingSet)
+      val eval = new BinaryClassificationEvaluator()
+      println("eval results: " + eval.evaluate(transformedTrainingSet))
     }
   }
 }
