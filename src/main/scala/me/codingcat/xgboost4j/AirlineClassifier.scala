@@ -95,7 +95,7 @@ object AirlineClassifier {
     val conf = ConfigFactory.parseFile(new File(tuningParamsPath))
     val paramGrid = new ParamGridBuilder()
       .addGrid(xgbEstimator.eta, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name))
-      .addGrid(xgbEstimator.maxDepth, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name).
+      .addGrid(xgbEstimator.maxDepth, Utils.fromConfigToParamGrid(conf)(xgbEstimator.maxDepth.name).
         map(_.toInt))
       .addGrid(xgbEstimator.minChildWeight, Utils.fromConfigToParamGrid(conf)(xgbEstimator.
         minChildWeight.name))
