@@ -132,9 +132,10 @@ object AirlineClassifier {
       gradientBoostedTrees.setMaxBins(1000)
       gradientBoostedTrees.setMaxIter(20)
       gradientBoostedTrees.setMaxDepth(7)
-      gradientBoostedTrees.fit(transformedTrainingSet)
+      val dfWithTransformed = gradientBoostedTrees.fit(transformedTrainingSet)
       val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
-      println("eval results: " + eval.evaluate(transformedTrainingSet))
+      println("eval results: " + eval.evaluate(
+        dfWithTransformed.transform(transformedTrainingSet))
     }
   }
 }
