@@ -104,10 +104,16 @@ object AirlineClassifier {
     val trainingSet = spark.read.parquet(trainingPath)
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
+
+    val repartitioned = transformedTrainingSet.repartition(numWorkers)
+    println(repartitioned.mapPartitions(itr => Iterator(itr.toList.size)).collect().toList)
+
+    /*
     val xgbEstimator = new XGBoostEstimator(params)
     xgbEstimator.set(xgbEstimator.round, trainingRounds)
     xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
     crossValidation(xgbEstimator, transformedTrainingSet)
+    */
 
   }
 }
