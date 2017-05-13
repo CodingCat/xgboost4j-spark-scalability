@@ -107,6 +107,7 @@ object AirlineClassifier {
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
 
     val xgbEstimator = new XGBoostEstimator(params)
+    xgbEstimator.set(xgbEstimator.treeMethod, "hist")
     xgbEstimator.set(xgbEstimator.useExternalMemory, true)
     xgbEstimator.set(xgbEstimator.round, trainingRounds)
     xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
