@@ -79,10 +79,31 @@ object AirlineClassifier {
 
   private def crossValidation(
       xgbEstimator: XGBoostEstimator,
-      trainingSet: DataFrame): Unit = {
+      trainingSet: DataFrame,
+      tuningParamsPath: String): Unit = {
+    /**
+     *  "max_depth" -> 6,
+    "min_child_weight" -> 1,
+    "gamma" -> 0,
+    "subsample" -> 1,
+    "colsample_bytree" -> 1,
+    "scale_pos_weight" -> 1,
+    "silent" -> 0,
+    "eta" -> 0.3,
+    "objective" -> "binary:logistic"
+     */
+    val conf = ConfigFactory.parseFile(new File(tuningParamsPath))
     val paramGrid = new ParamGridBuilder()
-      .addGrid(xgbEstimator.eta, Array(0.15, 0.2))
-      .addGrid(xgbEstimator.maxDepth, Array(10, 20))
+      .addGrid(xgbEstimator.eta, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name))
+      .addGrid(xgbEstimator.maxDepth, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name).
+        map(_.toInt))
+      .addGrid(xgbEstimator.minChildWeight, Utils.fromConfigToParamGrid(conf)(xgbEstimator.
+        minChildWeight.name))
+      .addGrid(xgbEstimator.gamma, Utils.fromConfigToParamGrid(conf)(xgbEstimator.gamma.name))
+      .addGrid(xgbEstimator.colSampleByTree, Utils.fromConfigToParamGrid(conf)(
+        xgbEstimator.colSampleByTree.name))
+      .addGrid(xgbEstimator.scalePosWeight, Utils.fromConfigToParamGrid(conf)(
+        xgbEstimator.scalePosWeight.name))
       .build()
     val cv = new CrossValidator()
       .setEstimator(xgbEstimator)
@@ -106,11 +127,16 @@ object AirlineClassifier {
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
 
-    val xgbEstimator = new XGBoostEstimator(params)
-    xgbEstimator.set(xgbEstimator.useExternalMemory, true)
-    xgbEstimator.set(xgbEstimator.round, trainingRounds)
-    xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
-    crossValidation(xgbEstimator, transformedTrainingSet)
-
+    if (args.length > 2) {
+      val xgbEstimator = new XGBoostEstimator(params)
+      xgbEstimator.set(xgbEstimator.useExternalMemory, true)
+      xgbEstimator.set(xgbEstimator.round, trainingRounds)
+      xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
+      crossValidation(xgbEstimator, transformedTrainingSet, args(1))
+    } else {
+      // directly training
+      XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
+        nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
+    }
   }
 }
