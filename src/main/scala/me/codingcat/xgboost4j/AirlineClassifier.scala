@@ -27,6 +27,8 @@ import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
+import org.apache.spark.mllib.tree.GradientBoostedTrees
+import org.apache.spark.mllib.tree.configuration.BoostingStrategy
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object AirlineClassifier {
@@ -81,8 +83,6 @@ object AirlineClassifier {
     val paramGrid = new ParamGridBuilder()
       .addGrid(xgbEstimator.eta, Array(0.1, 0.15, 0.2))
       .addGrid(xgbEstimator.maxDepth, Array(10, 15, 20))
-      .addGrid(xgbEstimator.gamma, Array(0.8, 1.0))
-      .addGrid(xgbEstimator.subSample, Array(0.8, 0.9))
       .build()
     val cv = new CrossValidator()
       .setEstimator(xgbEstimator)
