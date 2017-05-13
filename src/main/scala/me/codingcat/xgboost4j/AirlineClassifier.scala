@@ -127,7 +127,7 @@ object AirlineClassifier {
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
 
-    if (args.length > 2) {
+    if (args.length >= 2) {
       val xgbEstimator = new XGBoostEstimator(params)
       xgbEstimator.set(xgbEstimator.round, trainingRounds)
       xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
