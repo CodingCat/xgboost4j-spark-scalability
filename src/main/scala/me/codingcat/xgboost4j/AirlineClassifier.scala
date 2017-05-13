@@ -133,7 +133,7 @@ object AirlineClassifier {
       gradientBoostedTrees.setMaxIter(20)
       gradientBoostedTrees.setMaxDepth(7)
       gradientBoostedTrees.fit(transformedTrainingSet)
-      val eval = new BinaryClassificationEvaluator()
+      val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
       println("eval results: " + eval.evaluate(transformedTrainingSet))
     }
   }
