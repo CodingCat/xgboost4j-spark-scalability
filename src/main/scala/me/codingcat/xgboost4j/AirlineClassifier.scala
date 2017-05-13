@@ -79,10 +79,10 @@ object AirlineClassifier {
       xgbEstimator: XGBoostEstimator,
       trainingSet: DataFrame): Unit = {
     val paramGrid = new ParamGridBuilder()
-      .addGrid(xgbEstimator.eta, Array(0.01, 0.05, 0.1, 0.15, 0.2))
-      .addGrid(xgbEstimator.maxDepth, Array(2, 4, 6, 8, 10))
-      .addGrid(xgbEstimator.gamma, Array(0.2, 0.4, 0.6, 0.8, 1.0))
-      .addGrid(xgbEstimator.subSample, Array(0.7, 0.8, 0.9))
+      .addGrid(xgbEstimator.eta, Array(0.1, 0.15, 0.2))
+      .addGrid(xgbEstimator.maxDepth, Array(10, 15, 20))
+      .addGrid(xgbEstimator.gamma, Array(0.8, 1.0))
+      .addGrid(xgbEstimator.subSample, Array(0.8, 0.9))
       .build()
     val cv = new CrossValidator()
       .setEstimator(xgbEstimator)
@@ -104,16 +104,11 @@ object AirlineClassifier {
     val trainingSet = spark.read.parquet(trainingPath)
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
-    import transformedTrainingSet.sparkSession.implicits._
-    val repartitioned = transformedTrainingSet.repartition(numWorkers)
-    println(repartitioned.mapPartitions(itr => Iterator(itr.toList.size)).collect().toList)
 
-    /*
     val xgbEstimator = new XGBoostEstimator(params)
     xgbEstimator.set(xgbEstimator.round, trainingRounds)
     xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
     crossValidation(xgbEstimator, transformedTrainingSet)
-    */
 
   }
 }
