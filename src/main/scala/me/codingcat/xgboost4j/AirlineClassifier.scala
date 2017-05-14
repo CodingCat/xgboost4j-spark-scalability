@@ -110,6 +110,7 @@ object AirlineClassifier {
     val trainingPath = config.getString("me.codingcat.xgboost4j.airline.trainingPath")
     val trainingRounds = config.getInt("me.codingcat.xgboost4j.rounds")
     val numWorkers = config.getInt("me.codingcat.xgboost4j.numWorkers")
+    val treeType = config.getString("me.codingcat.xgboost4j.treeMethod")
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(trainingPath)
@@ -121,6 +122,7 @@ object AirlineClassifier {
         val xgbEstimator = new XGBoostEstimator(params)
         xgbEstimator.set(xgbEstimator.round, trainingRounds)
         xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
+        xgbEstimator.set(xgbEstimator.treeMethod, treeType)
         crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
       } else {
         // directly training
