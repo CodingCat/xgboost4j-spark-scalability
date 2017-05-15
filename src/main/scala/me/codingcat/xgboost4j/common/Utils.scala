@@ -29,6 +29,7 @@ private[xgboost4j] object Utils {
     "gamma" -> 0,
     "subsample" -> 1,
     "colsample_bytree" -> 1,
+    "lambda" -> 1,
     "scale_pos_weight" -> 1,
     "silent" -> 0,
     "eta" -> 0.3,
