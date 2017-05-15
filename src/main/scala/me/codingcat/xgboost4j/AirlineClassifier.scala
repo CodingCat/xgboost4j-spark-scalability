@@ -135,11 +135,11 @@ object AirlineClassifier {
         crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
       } else {
         // directly training
-        val startTime = System.nanoTime()
         transformedTrainingSet.cache().foreach(_ => Unit)
+        val startTime = System.nanoTime()
         val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
           nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
-        println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0} ms")
+        println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
         val resultDF = xgbModel.transform(transformedTestset)
         val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
         binaryClassificationEvaluator.setRawPredictionCol("probabilities").setLabelCol("label")
