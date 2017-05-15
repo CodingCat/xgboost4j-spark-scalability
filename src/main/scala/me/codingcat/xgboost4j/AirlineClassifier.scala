@@ -85,13 +85,7 @@ object AirlineClassifier {
       .addGrid(xgbEstimator.eta, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name))
       .addGrid(xgbEstimator.maxDepth, Utils.fromConfigToParamGrid(conf)(xgbEstimator.maxDepth.name).
         map(_.toInt))
-      .addGrid(xgbEstimator.minChildWeight, Utils.fromConfigToParamGrid(conf)(xgbEstimator.
-        minChildWeight.name))
       .addGrid(xgbEstimator.gamma, Utils.fromConfigToParamGrid(conf)(xgbEstimator.gamma.name))
-      .addGrid(xgbEstimator.colSampleByTree, Utils.fromConfigToParamGrid(conf)(
-        xgbEstimator.colSampleByTree.name))
-      .addGrid(xgbEstimator.scalePosWeight, Utils.fromConfigToParamGrid(conf)(
-        xgbEstimator.scalePosWeight.name))
       .addGrid(xgbEstimator.lambda, Utils.fromConfigToParamGrid(conf)(xgbEstimator.lambda.name))
       .build()
     val cv = new CrossValidator()
