@@ -44,7 +44,8 @@ private[xgboost4j] object Utils {
     "colsample_bytree" -> "1",
     "scale_pos_weight" -> "1",
     "silent" -> "0",
-    "eta" -> "0.3"
+    "eta" -> "0.3",
+    "lambda" -> "1"
   )
 
   def fromConfigToParamGrid(config: Config): Map[String, Array[Double]] = {

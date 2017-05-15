@@ -79,7 +79,7 @@ object AirlineClassifier {
   private def crossValidationWithXGBoost(
       xgbEstimator: XGBoostEstimator,
       trainingSet: DataFrame,
-      tuningParamsPath: String): Unit = {
+      tuningParamsPath: String): XGBoostModel = {
     val conf = ConfigFactory.parseFile(new File(tuningParamsPath))
     val paramGrid = new ParamGridBuilder()
       .addGrid(xgbEstimator.eta, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name))
@@ -92,6 +92,7 @@ object AirlineClassifier {
         xgbEstimator.colSampleByTree.name))
       .addGrid(xgbEstimator.scalePosWeight, Utils.fromConfigToParamGrid(conf)(
         xgbEstimator.scalePosWeight.name))
+      .addGrid(xgbEstimator.lambda, Utils.fromConfigToParamGrid(conf)(xgbEstimator.lambda.name))
       .build()
     val cv = new CrossValidator()
       .setEstimator(xgbEstimator)
@@ -100,8 +101,7 @@ object AirlineClassifier {
       .setEstimatorParamMaps(paramGrid)
       .setNumFolds(5)
     val cvModel = cv.fit(trainingSet)
-    println("====BEST MODEL====")
-    println(cvModel.bestModel.extractParamMap())
+    cvModel.bestModel.asInstanceOf[XGBoostModel]
   }
 
   def main(args: Array[String]): Unit = {
@@ -132,7 +132,10 @@ object AirlineClassifier {
         xgbEstimator.set(xgbEstimator.round, trainingRounds)
         xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
         xgbEstimator.set(xgbEstimator.treeMethod, treeType)
-        crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
+        val bestModel = crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
+        println(s"best model: ${bestModel.extractParamMap()}")
+        val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
+        println("eval results: " + eval.evaluate(bestModel.transform(transformedTrainingSet)))
       } else {
         // directly training
         transformedTrainingSet.cache().foreach(_ => Unit)
@@ -150,10 +153,9 @@ object AirlineClassifier {
       gradientBoostedTrees.setMaxBins(1000)
       gradientBoostedTrees.setMaxIter(20)
       gradientBoostedTrees.setMaxDepth(7)
-      val dfWithTransformed = gradientBoostedTrees.fit(transformedTrainingSet)
+      val model = gradientBoostedTrees.fit(transformedTrainingSet)
       val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
-      println("eval results: " + eval.evaluate(
-        dfWithTransformed.transform(transformedTrainingSet)))
+      println("eval results: " + eval.evaluate(model.transform(transformedTrainingSet)))
     }
   }
 }
