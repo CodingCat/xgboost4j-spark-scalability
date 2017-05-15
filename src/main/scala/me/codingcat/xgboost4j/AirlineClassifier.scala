@@ -111,11 +111,20 @@ object AirlineClassifier {
     val trainingRounds = config.getInt("me.codingcat.xgboost4j.rounds")
     val numWorkers = config.getInt("me.codingcat.xgboost4j.numWorkers")
     val treeType = config.getString("me.codingcat.xgboost4j.treeMethod")
+    val sampleRate = config.getDouble("me.codingcat.xgboost4j.sampleRate")
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
-    val trainingSet = spark.read.parquet(trainingPath)
+    val completeSet = spark.read.parquet(trainingPath)
+    val sampledDataset = if (sampleRate > 0) {
+      completeSet.sample(withReplacement = false, sampleRate)
+    } else {
+      completeSet
+    }
+    val Array(trainingSet, testSet) = sampledDataset.randomSplit(Array(0.8, 0.2))
+
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
+    val transformedTestset = runPreprocessingPipeline(pipeline, testSet)
 
     if (libName == "xgboost") {
       if (args.length >= 2) {
@@ -126,8 +135,14 @@ object AirlineClassifier {
         crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
       } else {
         // directly training
-        XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
+        val startTime = System.nanoTime()
+        val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
           nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
+        println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0} ms")
+        val resultDF = xgbModel.transform(transformedTestset)
+        val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
+        binaryClassificationEvaluator.setRawPredictionCol("probabilities").setLabelCol("label")
+        println(s"=====test AUC: ${binaryClassificationEvaluator.evaluate(resultDF)}======")
       }
     } else {
       val gradientBoostedTrees = new GBTClassifier()
