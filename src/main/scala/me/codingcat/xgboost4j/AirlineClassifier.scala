@@ -136,6 +136,7 @@ object AirlineClassifier {
       } else {
         // directly training
         val startTime = System.nanoTime()
+        transformedTrainingSet.cache().foreach(_ => Unit)
         val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
           nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
         println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0} ms")
