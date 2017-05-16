@@ -129,7 +129,7 @@ object AirlineClassifier {
         val bestModel = crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
         println(s"best model: ${bestModel.extractParamMap()}")
         val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
-        println("eval results: " + eval.evaluate(bestModel.transform(transformedTrainingSet)))
+        println("eval results: " + eval.evaluate(bestModel.transform(transformedTestset)))
       } else {
         // directly training
         transformedTrainingSet.cache().foreach(_ => Unit)
