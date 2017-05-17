@@ -149,11 +149,17 @@ object AirlineClassifier {
     } else {
       val gradientBoostedTrees = new GBTClassifier()
       gradientBoostedTrees.setMaxBins(1000)
-      gradientBoostedTrees.setMaxIter(20)
-      gradientBoostedTrees.setMaxDepth(7)
+      gradientBoostedTrees.setMaxIter(500)
+      gradientBoostedTrees.setMaxDepth(6)
+      gradientBoostedTrees.setStepSize(1.0)
+      transformedTrainingSet.cache().foreach(_ => Unit)
+      val startTime = System.nanoTime()
       val model = gradientBoostedTrees.fit(transformedTrainingSet)
-      val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
-      println("eval results: " + eval.evaluate(model.transform(transformedTrainingSet)))
+      println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
+      val resultDF = model.transform(transformedTestset)
+      val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
+      binaryClassificationEvaluator.setRawPredictionCol("prediction").setLabelCol("label")
+      println(s"=====test AUC: ${binaryClassificationEvaluator.evaluate(resultDF)}======")
     }
   }
 }
