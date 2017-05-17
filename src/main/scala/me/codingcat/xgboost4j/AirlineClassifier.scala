@@ -87,6 +87,10 @@ object AirlineClassifier {
         map(_.toInt))
       .addGrid(xgbEstimator.gamma, Utils.fromConfigToParamGrid(conf)(xgbEstimator.gamma.name))
       .addGrid(xgbEstimator.lambda, Utils.fromConfigToParamGrid(conf)(xgbEstimator.lambda.name))
+      .addGrid(xgbEstimator.colSampleByTree, Utils.fromConfigToParamGrid(conf)(
+        xgbEstimator.colSampleByTree.name))
+      .addGrid(xgbEstimator.subSample, Utils.fromConfigToParamGrid(conf)(
+        xgbEstimator.subSample.name))
       .build()
     val cv = new CrossValidator()
       .setEstimator(xgbEstimator)
