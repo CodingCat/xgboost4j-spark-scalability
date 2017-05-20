@@ -29,11 +29,35 @@ private[xgboost4j] object Utils {
     "gamma" -> 0,
     "subsample" -> 1,
     "colsample_bytree" -> 1,
+    "lambda" -> 1,
     "scale_pos_weight" -> 1,
     "silent" -> 0,
     "eta" -> 0.3,
     "objective" -> "binary:logistic"
   )
+
+  private val paramSets = Map(
+    "max_depth" -> "6",
+    "min_child_weight" -> "1",
+    "gamma" -> "0",
+    "subsample" -> "1",
+    "colsample_bytree" -> "1",
+    "scale_pos_weight" -> "1",
+    "silent" -> "0",
+    "eta" -> "0.3",
+    "lambda" -> "1"
+  )
+
+  def fromConfigToParamGrid(config: Config): Map[String, Array[Double]] = {
+    val specifiedMap = new mutable.HashMap[String, Array[Double]]
+    for (name <- paramSets.keys) {
+      if (config.hasPath(s"me.codingcat.xgboost4j.$name")) {
+        specifiedMap += name ->
+          config.getString(s"me.codingcat.xgboost4j.$name").split(",").map(_.toDouble)
+      }
+    }
+    specifiedMap.toMap
+  }
 
   def fromConfigToXGBParams(config: Config): Map[String, Any] = {
     val specifiedMap = new mutable.HashMap[String, Any]

@@ -24,7 +24,10 @@ import me.codingcat.xgboost4j.common.Utils
 import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostEstimator, XGBoostModel}
 
 import org.apache.spark.ml.Pipeline
+import org.apache.spark.ml.classification.GBTClassifier
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
+import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object AirlineClassifier {
@@ -73,18 +76,90 @@ object AirlineClassifier {
       "features", "case when dep_delayed_15min = true then 1.0 else 0.0 end as label")
   }
 
+  private def crossValidationWithXGBoost(
+      xgbEstimator: XGBoostEstimator,
+      trainingSet: DataFrame,
+      tuningParamsPath: String): XGBoostModel = {
+    val conf = ConfigFactory.parseFile(new File(tuningParamsPath))
+    val paramGrid = new ParamGridBuilder()
+      .addGrid(xgbEstimator.eta, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name))
+      .addGrid(xgbEstimator.maxDepth, Utils.fromConfigToParamGrid(conf)(xgbEstimator.maxDepth.name).
+        map(_.toInt))
+      .addGrid(xgbEstimator.gamma, Utils.fromConfigToParamGrid(conf)(xgbEstimator.gamma.name))
+      .addGrid(xgbEstimator.lambda, Utils.fromConfigToParamGrid(conf)(xgbEstimator.lambda.name))
+      .addGrid(xgbEstimator.colSampleByTree, Utils.fromConfigToParamGrid(conf)(
+        xgbEstimator.colSampleByTree.name))
+      .addGrid(xgbEstimator.subSample, Utils.fromConfigToParamGrid(conf)(
+        xgbEstimator.subSample.name))
+      .build()
+    val cv = new CrossValidator()
+      .setEstimator(xgbEstimator)
+      .setEvaluator(new BinaryClassificationEvaluator().
+        setRawPredictionCol("probabilities").setLabelCol("label"))
+      .setEstimatorParamMaps(paramGrid)
+      .setNumFolds(5)
+    val cvModel = cv.fit(trainingSet)
+    cvModel.bestModel.asInstanceOf[XGBoostModel]
+  }
+
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.parseFile(new File(args(0)))
+    val libName = config.getString("me.codingcat.xgboost4j.lib")
     val trainingPath = config.getString("me.codingcat.xgboost4j.airline.trainingPath")
     val trainingRounds = config.getInt("me.codingcat.xgboost4j.rounds")
     val numWorkers = config.getInt("me.codingcat.xgboost4j.numWorkers")
+    val treeType = config.getString("me.codingcat.xgboost4j.treeMethod")
+    val sampleRate = config.getDouble("me.codingcat.xgboost4j.sampleRate")
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
-    val trainingSet = spark.read.parquet(trainingPath)
+    val completeSet = spark.read.parquet(trainingPath)
+    val sampledDataset = if (sampleRate > 0) {
+      completeSet.sample(withReplacement = false, sampleRate)
+    } else {
+      completeSet
+    }
+    val Array(trainingSet, testSet) = sampledDataset.randomSplit(Array(0.8, 0.2))
+
     val pipeline = buildPreprocessingPipeline()
     val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
-    val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet,
-      params = params, round = trainingRounds, nWorkers = numWorkers)
-    xgbModel.transform(transformedTrainingSet).show()
+    val transformedTestset = runPreprocessingPipeline(pipeline, testSet)
+
+    if (libName == "xgboost") {
+      if (args.length >= 2) {
+        val xgbEstimator = new XGBoostEstimator(params)
+        xgbEstimator.set(xgbEstimator.round, trainingRounds)
+        xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
+        xgbEstimator.set(xgbEstimator.treeMethod, treeType)
+        val bestModel = crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
+        println(s"best model: ${bestModel.extractParamMap()}")
+        val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
+        println("eval results: " + eval.evaluate(bestModel.transform(transformedTestset)))
+      } else {
+        // directly training
+        transformedTrainingSet.cache().foreach(_ => Unit)
+        val startTime = System.nanoTime()
+        val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
+          nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
+        println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
+        val resultDF = xgbModel.transform(transformedTestset)
+        val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
+        binaryClassificationEvaluator.setRawPredictionCol("probabilities").setLabelCol("label")
+        println(s"=====test AUC: ${binaryClassificationEvaluator.evaluate(resultDF)}======")
+      }
+    } else {
+      val gradientBoostedTrees = new GBTClassifier()
+      gradientBoostedTrees.setMaxBins(1000)
+      gradientBoostedTrees.setMaxIter(500)
+      gradientBoostedTrees.setMaxDepth(6)
+      gradientBoostedTrees.setStepSize(1.0)
+      transformedTrainingSet.cache().foreach(_ => Unit)
+      val startTime = System.nanoTime()
+      val model = gradientBoostedTrees.fit(transformedTrainingSet)
+      println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
+      val resultDF = model.transform(transformedTestset)
+      val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
+      binaryClassificationEvaluator.setRawPredictionCol("prediction").setLabelCol("label")
+      println(s"=====test AUC: ${binaryClassificationEvaluator.evaluate(resultDF)}======")
+    }
   }
 }
