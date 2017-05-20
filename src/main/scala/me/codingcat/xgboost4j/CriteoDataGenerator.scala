@@ -61,7 +61,13 @@ object CriteoDataGenerator {
             }
           }
         } else {
-          transformedArray(i) = array(i)
+          transformedArray(i) = {
+            if (array(i) == "") {
+              "NONE"
+            } else {
+              array(i)
+            }
+          }
         }
       }
       Row.fromSeq(transformedArray)
