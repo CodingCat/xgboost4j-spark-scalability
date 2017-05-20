@@ -77,9 +77,10 @@ object CriteoDataGenerator {
         Seq(StructField("label", DoubleType)) ++
           (0 until 13).map(i => StructField(s"numeric_$i", DoubleType)) ++
           (0 until 26).map(i => StructField(s"category_$i", StringType))))
+    val handledNull = typeTransformedDF.na.fill("NONE", (0 until 26).map(i => s"category_$i"))
     val pipeline = buildPipeline()
     val transformedDF =
-      pipeline.fit(typeTransformedDF).transform(typeTransformedDF).select("features", "label")
+      pipeline.fit(handledNull).transform(handledNull).select("features", "label")
     transformedDF.write.format("parquet").mode(SaveMode.Overwrite).save(outputPath)
   }
 }
