@@ -31,16 +31,19 @@ object CriteoDataGenerator {
       stringIndexerArray(i) = new StringIndexer().setInputCol(s"category_$i").setOutputCol(
         s"category_$i" + "_index")
     }
+    /*
     val oneHotEncodersArray = new Array[OneHotEncoder](26)
     for (i <- 0 until 26) {
       oneHotEncodersArray(i) = new OneHotEncoder().setInputCol(s"category_$i" + "_index").
         setOutputCol(s"category_$i" + "_encoded")
     }
+    */
     val numericColumns = (0 until 13).map(i => s"numeric_$i").toArray
-    val categoryColumns = oneHotEncodersArray.map(_.getOutputCol)
+    val categoryColumns = stringIndexerArray.map(_.getOutputCol)
     val vectorAssembler = new VectorAssembler().setInputCols(numericColumns ++ categoryColumns).
       setOutputCol("features")
-    pipeline.setStages(stringIndexerArray ++ oneHotEncodersArray :+ vectorAssembler)
+    /* ++ oneHotEncodersArray */
+    pipeline.setStages(stringIndexerArray :+ vectorAssembler)
   }
 
   def main(args: Array[String]): Unit = {
