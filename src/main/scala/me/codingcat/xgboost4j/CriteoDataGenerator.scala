@@ -47,37 +47,11 @@ object CriteoDataGenerator {
     val trainingInputPath = args(0)
     val outputPath = args(1)
     val spark = SparkSession.builder().getOrCreate()
-    val rdd = spark.sparkContext.textFile(trainingInputPath)
-    val rowRDD = rdd.map(line => {
-      val array = line.split("\t")
-      val transformedArray = new Array[Any](40)
-      for (i <- array.indices) {
-        if (i <= 13) {
-          transformedArray(i) = {
-            if (array(i) == "" || array(i) == null) {
-              Double.NaN
-            } else {
-              array(i).toDouble
-            }
-          }
-        } else {
-          transformedArray(i) = {
-            if (array(i) == "" || array(i) == null) {
-              "NONE"
-            } else {
-              array(i)
-            }
-          }
-        }
-      }
-      Row.fromSeq(transformedArray)
-    })
-    val typeTransformedDF = spark.createDataFrame(rowRDD,
-      StructType(
-        Seq(StructField("label", DoubleType)) ++
-          (0 until 13).map(i => StructField(s"numeric_$i", DoubleType)) ++
-          (0 until 26).map(i => StructField(s"category_$i", StringType))))
-    val handledNull = typeTransformedDF.na.fill("NONE", (0 until 26).map(i => s"category_$i"))
+    val df = spark.read.format("csv").option("delimiter", "\t").load(trainingInputPath)
+    val typeTransformedDF = df.toDF(Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
+      (0 until 26).map(i => s"category_$i"): _*)
+    val handledNull = typeTransformedDF.na.fill("NONE", (0 until 26).map(i => s"category_$i")).
+      na.fill(Double.NaN, (0 until 13).map(i => s"numeric_$i"))
     val pipeline = buildPipeline()
     val transformedDF =
       pipeline.fit(handledNull).transform(handledNull).select("features", "label")
