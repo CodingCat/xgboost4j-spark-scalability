@@ -48,13 +48,17 @@ object CriteoDataGenerator {
     val outputPath = args(1)
     val spark = SparkSession.builder().getOrCreate()
     val df = spark.read.format("csv").option("delimiter", "\t").load(trainingInputPath)
-    val typeTransformedDF = df.toDF(Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
+    val df2 = df.toDF(Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
       (0 until 26).map(i => s"category_$i"): _*)
-    val handledNull = typeTransformedDF.na.fill("NONE", (0 until 26).map(i => s"category_$i")).
+    val handledNull = df2.na.fill("NONE", (0 until 26).map(i => s"category_$i")).
       na.fill(Double.NaN, (0 until 13).map(i => s"numeric_$i"))
+    val castExprArray = (0 until 13).map(i => s"cast (numeric_$i as double) numeric_$i")
+    val remainExprArray = (0 until 26).map(i => s"category_$i")
+    val typeTransformedDF = handledNull.selectExpr(
+      Seq("cast (label as double) label") ++ castExprArray ++ remainExprArray: _*)
     val pipeline = buildPipeline()
     val transformedDF =
-      pipeline.fit(handledNull).transform(handledNull).select("features", "label")
+      pipeline.fit(typeTransformedDF).transform(typeTransformedDF).select("features", "label")
     transformedDF.write.format("parquet").mode(SaveMode.Overwrite).save(outputPath)
   }
 }
