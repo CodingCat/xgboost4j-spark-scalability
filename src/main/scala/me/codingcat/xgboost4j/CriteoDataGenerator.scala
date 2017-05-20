@@ -52,6 +52,6 @@ object CriteoDataGenerator {
     val pipeline = buildPipeline()
     val transformedDF =
       pipeline.fit(typeTransformedDF).transform(typeTransformedDF).select("features", "label")
-    transformedDF.write.mode(SaveMode.Overwrite).save(outputPath)
+    transformedDF.write.format("parquet").mode(SaveMode.Overwrite).save(outputPath)
   }
 }
