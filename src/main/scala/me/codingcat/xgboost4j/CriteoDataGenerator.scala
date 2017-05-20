@@ -19,8 +19,8 @@ package me.codingcat.xgboost4j
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
-import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
+import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 object CriteoDataGenerator {
 
@@ -64,7 +64,7 @@ object CriteoDataGenerator {
     val typeTransformedDF = spark.createDataFrame(rowRDD,
       StructType(
         Seq(StructField("label", DoubleType)) ++
-          (0 until 13).map(i => StructField(s"numberic_$i", DoubleType)) ++
+          (0 until 13).map(i => StructField(s"numeric_$i", DoubleType)) ++
           (0 until 26).map(i => StructField(s"category_$i", StringType))))
     val pipeline = buildPipeline()
     val transformedDF =
