@@ -46,8 +46,9 @@ object CriteoDataGenerator {
       (0 until 26).map(i => s"category_$i")
     val colRenamedDF = tsvFile.toDF(colNames: _*)
     val castExprArray = (0 until 13).map(i => s"cast (numeric_$i as double) numeric_$i")
+    val remainExprArray = (0 until 26).map(i => s"category_$i")
     val typeTransformedDF = colRenamedDF.selectExpr(
-      Seq("cast (label as double) label") ++ castExprArray: _*)
+      Seq("cast (label as double) label") ++ castExprArray ++ remainExprArray: _*)
     typeTransformedDF.printSchema()
     val pipeline = buildPipeline()
     val transformedDF =
