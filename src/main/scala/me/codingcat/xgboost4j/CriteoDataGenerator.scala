@@ -54,7 +54,7 @@ object CriteoDataGenerator {
       for (i <- array.indices) {
         if (i <= 13) {
           transformedArray(i) = {
-            if (array(i) == "") {
+            if (array(i) == "" || array(i) == null) {
               Double.NaN
             } else {
               array(i).toDouble
@@ -62,7 +62,7 @@ object CriteoDataGenerator {
           }
         } else {
           transformedArray(i) = {
-            if (array(i) == "") {
+            if (array(i) == "" || array(i) == null) {
               "NONE"
             } else {
               array(i)
