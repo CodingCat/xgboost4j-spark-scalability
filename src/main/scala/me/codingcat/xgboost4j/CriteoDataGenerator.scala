@@ -27,10 +27,10 @@ object CriteoDataGenerator {
     val pipeline = new Pipeline()
     val stringIndexerArray = new Array[StringIndexer](26)
     for (i <- 0 until 26) {
-      stringIndexerArray(i) = new StringIndexer().setInputCol(s"category-$i").setOutputCol(
-        s"category-$i-index")
+      stringIndexerArray(i) = new StringIndexer().setInputCol(s"category_$i").setOutputCol(
+        s"category_$i" + "_index")
     }
-    val numericColumns = (0 until 13).map(i => s"numeric-$i").toArray
+    val numericColumns = (0 until 13).map(i => s"numeric_$i").toArray
     val categoryColumns = stringIndexerArray.map(_.getOutputCol)
     val vectorAssembler = new VectorAssembler().setInputCols(numericColumns ++ categoryColumns).
       setOutputCol("features")
