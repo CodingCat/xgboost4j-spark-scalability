@@ -19,6 +19,7 @@ package me.codingcat.xgboost4j
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.{StringIndexer, VectorAssembler}
+import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Row, SaveMode, SparkSession}
 
 object CriteoDataGenerator {
@@ -41,15 +42,30 @@ object CriteoDataGenerator {
     val trainingInputPath = args(0)
     val outputPath = args(1)
     val spark = SparkSession.builder().getOrCreate()
-    val tsvFile = spark.read.format("csv").option("delimiter", "\t").load(trainingInputPath)
-    val colNames = Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
-      (0 until 26).map(i => s"category_$i")
-    val colRenamedDF = tsvFile.toDF(colNames: _*)
-    val castExprArray = (0 until 13).map(i => s"cast (numeric_$i as double) numeric_$i")
-    val remainExprArray = (0 until 26).map(i => s"category_$i")
-    val typeTransformedDF = colRenamedDF.selectExpr(
-      Seq("cast (label as double) label") ++ castExprArray ++ remainExprArray: _*)
-    typeTransformedDF.printSchema()
+    val rdd = spark.sparkContext.textFile("trainingInputPath")
+    val rowRDD = rdd.map(line => {
+      val array = line.split("\t")
+      val transformedArray = new Array[Any](40)
+      for (i <- array.indices) {
+        if (i <= 13) {
+          transformedArray(i) = {
+            if (array(i) == "") {
+              Double.NaN
+            } else {
+              array(i).toDouble
+            }
+          }
+        } else {
+          transformedArray(i) = array(i)
+        }
+      }
+      Row.fromSeq(transformedArray)
+    })
+    val typeTransformedDF = spark.createDataFrame(rowRDD,
+      StructType(
+        Seq(StructField("label", DoubleType)) ++
+          (0 until 13).map(i => StructField(s"numberic_$i", DoubleType)) ++
+          (0 until 26).map(i => StructField(s"category_$i", StringType))))
     val pipeline = buildPipeline()
     val transformedDF =
       pipeline.fit(typeTransformedDF).transform(typeTransformedDF).select("features", "label")
