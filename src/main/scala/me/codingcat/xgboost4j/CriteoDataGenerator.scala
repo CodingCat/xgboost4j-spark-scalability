@@ -41,7 +41,6 @@ object CriteoDataGenerator {
     val trainingInputPath = args(0)
     val outputPath = args(1)
     val spark = SparkSession.builder().getOrCreate()
-    import spark.implicits._
     val tsvFile = spark.read.format("csv").option("delimiter", "\t").load(trainingInputPath)
     val colNames = Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
       (0 until 26).map(i => s"category_$i")
@@ -49,6 +48,7 @@ object CriteoDataGenerator {
     val castExprArray = (0 until 13).map(i => s"cast (numeric_$i as double) numeric_$i")
     val typeTransformedDF = colRenamedDF.selectExpr(
       Seq("cast (label as double) label") ++ castExprArray: _*)
+    typeTransformedDF.printSchema()
     val pipeline = buildPipeline()
     val transformedDF =
       pipeline.fit(typeTransformedDF).transform(typeTransformedDF).select("features", "label")
