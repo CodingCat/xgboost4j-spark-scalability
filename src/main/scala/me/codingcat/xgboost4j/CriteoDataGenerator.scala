@@ -42,7 +42,7 @@ object CriteoDataGenerator {
     val trainingInputPath = args(0)
     val outputPath = args(1)
     val spark = SparkSession.builder().getOrCreate()
-    val rdd = spark.sparkContext.textFile("trainingInputPath")
+    val rdd = spark.sparkContext.textFile(trainingInputPath)
     val rowRDD = rdd.map(line => {
       val array = line.split("\t")
       val transformedArray = new Array[Any](40)
