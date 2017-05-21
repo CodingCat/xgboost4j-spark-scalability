@@ -51,7 +51,7 @@ object CriteoDataGenerator {
     val stringIndexerArray = new Array[StringIndexer](26)
     for (i <- 0 until 26) {
       stringIndexerArray(i) = new StringIndexer().setInputCol(s"category_$i").setOutputCol(
-        s"category_$i" + "_index")
+        s"category_index_$i")
     }
     pipeline.setStages(stringIndexerArray)
   }
