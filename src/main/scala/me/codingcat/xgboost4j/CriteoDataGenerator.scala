@@ -40,7 +40,8 @@ object CriteoDataGenerator {
     }
     for (i <- 0 until 26) {
       sparkSession.sql(s"select pos_cnt_per_category * 1.0 / cnt_per_category as ratio_$i from" +
-        s" cnt_per_category_$i where cnt_per_category_$i.category_index_$i ==" +
+        s" cnt_per_category_$i, pos_cnt_per_category_$i" +
+        s" where cnt_per_category_$i.category_index_$i ==" +
         s" pos_cnt_per_category_$i.category_index_$i").write.mode(
         SaveMode.Overwrite).save(rootPath + s"/ratio_category_$i")
     }
