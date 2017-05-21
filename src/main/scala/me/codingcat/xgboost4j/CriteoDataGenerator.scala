@@ -18,32 +18,42 @@
 package me.codingcat.xgboost4j
 
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
-import org.apache.spark.sql.{Row, SaveMode, SparkSession}
+import org.apache.spark.ml.feature.{OneHotEncoder, SQLTransformer, StringIndexer, VectorAssembler}
+import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
 import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
 
 object CriteoDataGenerator {
 
-  private def buildPipeline(): Pipeline = {
+  private def buildCnt(
+      sparkSession: SparkSession, df: DataFrame, rootPath: String): Unit = {
+    df.createOrReplaceTempView("StringIndexedDF")
+    for (i <- 0 until 26) {
+      sparkSession.sql(s"select count(category_index_$i)" +
+        s" as cnt_per_category, category_index_$i from" +
+        s" StringIndexedDF group by category_index_$i").
+        createOrReplaceTempView(s"cnt_per_category_$i")
+    }
+    for (i <- 0 until 26) {
+      sparkSession.sql(s"select count(category_index_$i) as pos_cnt_per_category," +
+        s" category_index_$i from cnt_per_category_$i where label = 1.0 group by category_index_$i")
+        .createOrReplaceTempView(s"pos_cnt_per_category_$i")
+    }
+    for (i <- 0 until 26) {
+      sparkSession.sql(s"select pos_cnt_per_category * 1.0 / cnt_per_category as ratio_$i from" +
+        s" cnt_per_category_$i where cnt_per_category_$i.category_index_$i ==" +
+        s" pos_cnt_per_category_$i.category_index_$i").write.mode(
+        SaveMode.Overwrite).save(rootPath + s"/ratio_category_$i")
+    }
+  }
+
+  private def buildStringIndexingPipeline(): Pipeline = {
     val pipeline = new Pipeline()
     val stringIndexerArray = new Array[StringIndexer](26)
     for (i <- 0 until 26) {
       stringIndexerArray(i) = new StringIndexer().setInputCol(s"category_$i").setOutputCol(
         s"category_$i" + "_index")
     }
-    /*
-    val oneHotEncodersArray = new Array[OneHotEncoder](26)
-    for (i <- 0 until 26) {
-      oneHotEncodersArray(i) = new OneHotEncoder().setInputCol(s"category_$i" + "_index").
-        setOutputCol(s"category_$i" + "_encoded")
-    }
-    */
-    val numericColumns = (0 until 13).map(i => s"numeric_$i").toArray
-    val categoryColumns = stringIndexerArray.map(_.getOutputCol)
-    val vectorAssembler = new VectorAssembler().setInputCols(numericColumns ++ categoryColumns).
-      setOutputCol("features")
-    /* ++ oneHotEncodersArray */
-    pipeline.setStages(stringIndexerArray :+ vectorAssembler)
+    pipeline.setStages(stringIndexerArray)
   }
 
   def main(args: Array[String]): Unit = {
@@ -61,11 +71,10 @@ object CriteoDataGenerator {
     val remainExprArray = (0 until 26).map(i => s"category_$i")
     val typeTransformedDF = handledNull.selectExpr(
       Seq("cast (label as double) label") ++ castExprArray ++ remainExprArray: _*)
-    /*
-    val pipeline = buildPipeline()
-    val transformedDF =
-      pipeline.fit(typeTransformedDF).transform(typeTransformedDF).select("features", "label")
-    */
-    typeTransformedDF.write.format("parquet").mode(SaveMode.Append).save(outputPath)
+    val stringIndexers = buildStringIndexingPipeline()
+    val stringTransformedDF = stringIndexers.fit(typeTransformedDF).
+      transform(typeTransformedDF)
+    buildCnt(spark, stringTransformedDF, outputPath)
+    // typeTransformedDF.write.format("parquet").mode(SaveMode.Overwrite).save(outputPath)
   }
 }
