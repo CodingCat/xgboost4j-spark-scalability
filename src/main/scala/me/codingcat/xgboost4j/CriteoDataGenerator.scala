@@ -29,7 +29,7 @@ object CriteoDataGenerator {
     df.createOrReplaceTempView("StringIndexedDF")
     for (i <- 0 until 26) {
       sparkSession.sql(s"select count(category_index_$i)" +
-        s" as cnt_per_category, category_index_$i from" +
+        s" as cnt_per_category, category_index_$i, label from" +
         s" StringIndexedDF group by category_index_$i").
         createOrReplaceTempView(s"cnt_per_category_$i")
     }
