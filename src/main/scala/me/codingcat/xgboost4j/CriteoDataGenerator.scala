@@ -61,9 +61,11 @@ object CriteoDataGenerator {
     val remainExprArray = (0 until 26).map(i => s"category_$i")
     val typeTransformedDF = handledNull.selectExpr(
       Seq("cast (label as double) label") ++ castExprArray ++ remainExprArray: _*)
+    /*
     val pipeline = buildPipeline()
     val transformedDF =
       pipeline.fit(typeTransformedDF).transform(typeTransformedDF).select("features", "label")
-    transformedDF.write.format("parquet").mode(SaveMode.Overwrite).save(outputPath)
+    */
+    typeTransformedDF.write.format("parquet").mode(SaveMode.Append).save(outputPath)
   }
 }
