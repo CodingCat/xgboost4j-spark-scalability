@@ -39,7 +39,8 @@ object CriteoDataGenerator {
         .createOrReplaceTempView(s"pos_cnt_per_category_$i")
     }
     for (i <- 0 until 26) {
-      sparkSession.sql(s"select pos_cnt_per_category * 1.0 / cnt_per_category as ratio_$i from" +
+      sparkSession.sql(s"select cnt_per_category_$i.category_index_$i " +
+        s"pos_cnt_per_category * 1.0 / cnt_per_category as ratio_$i from" +
         s" cnt_per_category_$i, pos_cnt_per_category_$i" +
         s" where cnt_per_category_$i.category_index_$i ==" +
         s" pos_cnt_per_category_$i.category_index_$i").write.mode(
