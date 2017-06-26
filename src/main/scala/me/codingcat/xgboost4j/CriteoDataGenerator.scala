@@ -18,14 +18,14 @@
 package me.codingcat.xgboost4j
 
 import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.{OneHotEncoder, SQLTransformer, StringIndexer, VectorAssembler}
-import org.apache.spark.sql.{DataFrame, Row, SaveMode, SparkSession}
-import org.apache.spark.sql.types.{DoubleType, StringType, StructField, StructType}
+import org.apache.spark.ml.feature.StringIndexer
+import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.apache.spark.sql.functions._
 
 object CriteoDataGenerator {
 
   private def buildCnt(
-      sparkSession: SparkSession, df: DataFrame, rootPath: String): Unit = {
+      sparkSession: SparkSession, df: DataFrame, rootPath: String): DataFrame = {
     df.createOrReplaceTempView("StringIndexedDF")
     for (i <- 0 until 26) {
       sparkSession.sql(s"select count(label)" +
@@ -38,14 +38,26 @@ object CriteoDataGenerator {
         s" category_index_$i from StringIndexedDF where label = 1.0 group by category_index_$i")
         .createOrReplaceTempView(s"pos_cnt_per_category_$i")
     }
+    val maps = new Array[Map[String, Double]](26)
     for (i <- 0 until 26) {
-      sparkSession.sql(s"select cnt_per_category_$i.category_index_$i " +
-        s"pos_cnt_per_category * 1.0 / cnt_per_category as ratio_$i from" +
-        s" cnt_per_category_$i, pos_cnt_per_category_$i" +
-        s" where cnt_per_category_$i.category_index_$i ==" +
-        s" pos_cnt_per_category_$i.category_index_$i").write.mode(
-        SaveMode.Overwrite).save(rootPath + s"/ratio_category_$i")
+      maps(i) =
+        sparkSession.sql(s"select cnt_per_category_$i.category_index_$i as category_index_$i, " +
+          s"pos_cnt_per_category * 1.0 / cnt_per_category as ratio_$i from" +
+          s" cnt_per_category_$i, pos_cnt_per_category_$i" +
+          s" where cnt_per_category_$i.category_index_$i ==" +
+          s" pos_cnt_per_category_$i.category_index_$i").collect().map(row =>
+          (row.getAs[String](s"category_index_$i"), row.getAs[Double](s"ratio_$i"))).toMap
     }
+    var df1 = df
+    for (i <- 0 until 26) {
+      df1 = df1.withColumn(
+        s"category_ratio_$i",
+        udf{
+          (category_index: String) => maps(i)(category_index)
+        }.apply(col(s"category_index_$i")))
+    }
+    val droppedCols = for (i <- 0 until 26) yield s"category_index_$i"
+    df1.drop(droppedCols: _*)
   }
 
   private def buildStringIndexingPipeline(): Pipeline = {
@@ -76,7 +88,7 @@ object CriteoDataGenerator {
     val stringIndexers = buildStringIndexingPipeline()
     val stringTransformedDF = stringIndexers.fit(typeTransformedDF).
       transform(typeTransformedDF)
-    buildCnt(spark, stringTransformedDF, outputPath)
-    // typeTransformedDF.write.format("parquet").mode(SaveMode.Overwrite).save(outputPath)
+    buildCnt(spark, stringTransformedDF, outputPath).write.format("parquet").mode(
+      SaveMode.Overwrite).save(outputPath)
   }
 }
