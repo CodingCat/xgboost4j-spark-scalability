@@ -48,6 +48,11 @@ object CriteoDataGenerator {
           s" pos_cnt_per_category_$i.category_index_$i").collect().map(row =>
           (row.getAs[String](s"category_index_$i"), row.getAs[Double](s"ratio_$i"))).toMap
     }
+    sparkSession.catalog.dropTempView("StringIndexedDF")
+    for (i <- 0 until 26) {
+      sparkSession.catalog.dropTempView("cnt_per_category_$i")
+      sparkSession.catalog.dropTempView("pos_cnt_per_category_$i")
+    }
     var df1 = df
     for (i <- 0 until 26) {
       df1 = df1.withColumn(
