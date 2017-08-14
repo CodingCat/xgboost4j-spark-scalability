@@ -87,11 +87,9 @@ object CriteoDataGenerator {
       }
     }
     val spark = SparkSession.builder().getOrCreate()
-    val df = spark.read.format("csv").option("delimiter", "\t").load(trainingInputPath).
-      repartition(partitions)
     if (outputAsParquet) {
-      df.write.parquet(outputPath)
-    } else {
+      val df = spark.read.format("csv").option("delimiter", "\t").load(trainingInputPath).
+        repartition(partitions)
       val df2 = df.toDF(Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
         (0 until 26).map(i => s"category_$i"): _*)
       val handledNull = df2.na.fill("NONE", (0 until 26).map(i => s"category_$i")).
@@ -103,7 +101,10 @@ object CriteoDataGenerator {
       val stringIndexers = buildStringIndexingPipeline()
       val stringTransformedDF = stringIndexers.fit(typeTransformedDF).
         transform(typeTransformedDF)
-      buildCnt(spark, stringTransformedDF, outputPath).write.format("parquet").mode(
+      stringTransformedDF.write.mode(SaveMode.Overwrite).parquet(outputPath)
+    } else {
+      val inputDF = spark.read.parquet(trainingInputPath)
+      buildCnt(spark, inputDF, outputPath).write.format("parquet").mode(
         SaveMode.Overwrite).save(outputPath)
     }
   }
