@@ -79,21 +79,32 @@ object CriteoDataGenerator {
     val trainingInputPath = args(0)
     val outputPath = args(1)
     val partitions = args(2).toInt
+    val outputAsParquet = {
+      if (args.length < 3) {
+        false
+      } else {
+        args(3).toBoolean
+      }
+    }
     val spark = SparkSession.builder().getOrCreate()
     val df = spark.read.format("csv").option("delimiter", "\t").load(trainingInputPath).
       repartition(partitions)
-    val df2 = df.toDF(Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
-      (0 until 26).map(i => s"category_$i"): _*)
-    val handledNull = df2.na.fill("NONE", (0 until 26).map(i => s"category_$i")).
-      na.fill(Double.NaN, (0 until 13).map(i => s"numeric_$i"))
-    val castExprArray = (0 until 13).map(i => s"cast (numeric_$i as double) numeric_$i")
-    val remainExprArray = (0 until 26).map(i => s"category_$i")
-    val typeTransformedDF = handledNull.selectExpr(
-      Seq("cast (label as double) label") ++ castExprArray ++ remainExprArray: _*)
-    val stringIndexers = buildStringIndexingPipeline()
-    val stringTransformedDF = stringIndexers.fit(typeTransformedDF).
-      transform(typeTransformedDF)
-    buildCnt(spark, stringTransformedDF, outputPath).write.format("parquet").mode(
-      SaveMode.Overwrite).save(outputPath)
+    if (outputAsParquet) {
+      df.write.parquet(outputPath)
+    } else {
+      val df2 = df.toDF(Seq("label") ++ (0 until 13).map(i => s"numeric_$i") ++
+        (0 until 26).map(i => s"category_$i"): _*)
+      val handledNull = df2.na.fill("NONE", (0 until 26).map(i => s"category_$i")).
+        na.fill(Double.NaN, (0 until 13).map(i => s"numeric_$i"))
+      val castExprArray = (0 until 13).map(i => s"cast (numeric_$i as double) numeric_$i")
+      val remainExprArray = (0 until 26).map(i => s"category_$i")
+      val typeTransformedDF = handledNull.selectExpr(
+        Seq("cast (label as double) label") ++ castExprArray ++ remainExprArray: _*)
+      val stringIndexers = buildStringIndexingPipeline()
+      val stringTransformedDF = stringIndexers.fit(typeTransformedDF).
+        transform(typeTransformedDF)
+      buildCnt(spark, stringTransformedDF, outputPath).write.format("parquet").mode(
+        SaveMode.Overwrite).save(outputPath)
+    }
   }
 }
