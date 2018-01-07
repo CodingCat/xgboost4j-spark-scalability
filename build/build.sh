@@ -20,5 +20,5 @@ cp xgboost4j-spark/target/*-dependencies.jar ../../lib/
 
 # compile benchmark
 cd ../../;
-sbt assembly
+build/sbt assembly
 rm -rf xgboost_build
