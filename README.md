@@ -2,6 +2,9 @@
 
 a benchmark to test scalability of xgboost4j-spark and relevant projects
 
+## Prerequestes 
+
+You have to ensure that maven (3.0+) and cmake is installed in your $PATH
 
 ## Build Benchmark
 
