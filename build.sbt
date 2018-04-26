@@ -7,7 +7,9 @@ organization := "com.microsoft"
 
 scalaVersion := "2.11.8"
 
-val sparkVersion = "2.1.0"
+val sparkVersion = "2.3.0"
+
+resolvers += "GitHub Repo" at "https://raw.githubusercontent.com/CodingCat/xgboost/maven-repo/"
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.1" % "test",
@@ -16,7 +18,8 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-library" % s"${scalaVersion.value}",
   "org.apache.spark" % "spark-sql_2.11" % s"$sparkVersion",
   "org.apache.spark" % "spark-mllib_2.11" % s"$sparkVersion",
-  "net.java.dev.jets3t" % "jets3t" % "0.9.4")
+  "net.java.dev.jets3t" % "jets3t" % "0.9.4",
+  "ml.dmlc" % "xgboost4j-spark" % "0.72")
 
 parallelExecution in Test := false
 
