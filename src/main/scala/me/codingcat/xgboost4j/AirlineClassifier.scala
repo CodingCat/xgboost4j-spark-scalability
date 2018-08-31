@@ -138,7 +138,7 @@ object AirlineClassifier {
       println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
       val resultDF = xgbClassificationModel.transform(transformedTestset)
       val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
-      binaryClassificationEvaluator.setRawPredictionCol("probabilities").setLabelCol("label")
+      binaryClassificationEvaluator.setRawPredictionCol("probability").setLabelCol("label")
       println(s"=====test AUC: ${binaryClassificationEvaluator.evaluate(resultDF)}======")
     }
   }
