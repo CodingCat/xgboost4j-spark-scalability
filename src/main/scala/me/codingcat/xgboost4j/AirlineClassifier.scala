@@ -21,7 +21,7 @@ import java.io.File
 
 import com.typesafe.config.{Config, ConfigFactory}
 import me.codingcat.xgboost4j.common.Utils
-import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostEstimator, XGBoostModel}
+import ml.dmlc.xgboost4j.scala.spark.{XGBoost, XGBoostClassificationModel, XGBoostClassifier}
 
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.classification.GBTClassifier
@@ -77,29 +77,29 @@ object AirlineClassifier {
   }
 
   private def crossValidationWithXGBoost(
-      xgbEstimator: XGBoostEstimator,
+      xgbClassifier: XGBoostClassifier,
       trainingSet: DataFrame,
-      tuningParamsPath: String): XGBoostModel = {
+      tuningParamsPath: String): XGBoostClassificationModel = {
     val conf = ConfigFactory.parseFile(new File(tuningParamsPath))
     val paramGrid = new ParamGridBuilder()
-      .addGrid(xgbEstimator.eta, Utils.fromConfigToParamGrid(conf)(xgbEstimator.eta.name))
-      .addGrid(xgbEstimator.maxDepth, Utils.fromConfigToParamGrid(conf)(xgbEstimator.maxDepth.name).
-        map(_.toInt))
-      .addGrid(xgbEstimator.gamma, Utils.fromConfigToParamGrid(conf)(xgbEstimator.gamma.name))
-      .addGrid(xgbEstimator.lambda, Utils.fromConfigToParamGrid(conf)(xgbEstimator.lambda.name))
-      .addGrid(xgbEstimator.colSampleByTree, Utils.fromConfigToParamGrid(conf)(
-        xgbEstimator.colSampleByTree.name))
-      .addGrid(xgbEstimator.subSample, Utils.fromConfigToParamGrid(conf)(
-        xgbEstimator.subSample.name))
+      .addGrid(xgbClassifier.eta, Utils.fromConfigToParamGrid(conf)(xgbClassifier.eta.name))
+      .addGrid(xgbClassifier.maxDepth, Utils.fromConfigToParamGrid(conf)(
+        xgbClassifier.maxDepth.name).map(_.toInt))
+      .addGrid(xgbClassifier.gamma, Utils.fromConfigToParamGrid(conf)(xgbClassifier.gamma.name))
+      .addGrid(xgbClassifier.lambda, Utils.fromConfigToParamGrid(conf)(xgbClassifier.lambda.name))
+      .addGrid(xgbClassifier.colsampleBytree, Utils.fromConfigToParamGrid(conf)(
+        xgbClassifier.colsampleBytree.name))
+      .addGrid(xgbClassifier.subsample, Utils.fromConfigToParamGrid(conf)(
+        xgbClassifier.subsample.name))
       .build()
     val cv = new CrossValidator()
-      .setEstimator(xgbEstimator)
+      .setEstimator(xgbClassifier)
       .setEvaluator(new BinaryClassificationEvaluator().
         setRawPredictionCol("probabilities").setLabelCol("label"))
       .setEstimatorParamMaps(paramGrid)
       .setNumFolds(5)
     val cvModel = cv.fit(trainingSet)
-    cvModel.bestModel.asInstanceOf[XGBoostModel]
+    cvModel.bestModel.asInstanceOf[XGBoostClassificationModel]
   }
 
   def main(args: Array[String]): Unit = {
@@ -126,11 +126,11 @@ object AirlineClassifier {
 
     if (libName == "xgboost") {
       if (args.length >= 2) {
-        val xgbEstimator = new XGBoostEstimator(params)
-        xgbEstimator.set(xgbEstimator.round, trainingRounds)
-        xgbEstimator.set(xgbEstimator.nWorkers, numWorkers)
-        xgbEstimator.set(xgbEstimator.treeMethod, treeType)
-        val bestModel = crossValidationWithXGBoost(xgbEstimator, transformedTrainingSet, args(1))
+        val xgbClassifier = new XGBoostClassifier(params)
+        xgbClassifier.set(xgbClassifier.numRound, trainingRounds)
+        xgbClassifier.set(xgbClassifier.numWorkers, numWorkers)
+        xgbClassifier.set(xgbClassifier.treeMethod, treeType)
+        val bestModel = crossValidationWithXGBoost(xgbClassifier, transformedTrainingSet, args(1))
         println(s"best model: ${bestModel.extractParamMap()}")
         val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
         println("eval results: " + eval.evaluate(bestModel.transform(transformedTestset)))
@@ -138,10 +138,11 @@ object AirlineClassifier {
         // directly training
         transformedTrainingSet.cache().foreach(_ => Unit)
         val startTime = System.nanoTime()
-        val xgbModel = XGBoost.trainWithDataFrame(transformedTrainingSet, round = trainingRounds,
-          nWorkers = numWorkers, params = Utils.fromConfigToXGBParams(config))
+        val xgbParams = Utils.fromConfigToXGBParams(config)
+        val xgboostClassifier = new XGBoostClassifier(xgbParams)
+        val xgboostClassificationModel = xgboostClassifier.fit(transformedTrainingSet)
         println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
-        val resultDF = xgbModel.transform(transformedTestset)
+        val resultDF = xgboostClassificationModel.transform(transformedTestset)
         val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
         binaryClassificationEvaluator.setRawPredictionCol("probabilities").setLabelCol("label")
         println(s"=====test AUC: ${binaryClassificationEvaluator.evaluate(resultDF)}======")
