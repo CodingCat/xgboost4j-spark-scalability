@@ -23,57 +23,11 @@ import com.typesafe.config.ConfigFactory
 import me.codingcat.xgboost4j.common.Utils
 import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostClassifier}
 
-import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
-import org.apache.spark.ml.feature.{OneHotEncoder, StringIndexer, VectorAssembler}
 import org.apache.spark.ml.tuning.{CrossValidator, ParamGridBuilder}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object AirlineClassifier {
-
-  private def buildPreprocessingPipeline(): Pipeline = {
-    // string indexers
-    val monthIndexer = new StringIndexer().setInputCol("Month").setOutputCol("monthIdx")
-    val daysOfMonthIndexer = new StringIndexer().setInputCol("DayOfMonth").
-      setOutputCol("dayOfMonthIdx")
-    val daysOfWeekIndexer = new StringIndexer().setInputCol("DayOfWeek").
-      setOutputCol("daysOfWeekIdx")
-    val uniqueCarrierIndexer = new StringIndexer().setInputCol("UniqueCarrier").setOutputCol(
-      "uniqueCarrierIndex")
-    val originIndexer = new StringIndexer().setInputCol("Origin").setOutputCol(
-      "originIndexer")
-    val destIndexer = new StringIndexer().setInputCol("Dest").setOutputCol(
-      "destIndexer")
-    // one-hot encoders
-    val monthEncoder = new OneHotEncoder().setInputCol("monthIdx").
-      setOutputCol("encodedMonth")
-    val daysOfMonthEncoder = new OneHotEncoder().setInputCol("dayOfMonthIdx").
-      setOutputCol("encodedDaysOfMonth")
-    val daysOfWeekEncoder = new OneHotEncoder().setInputCol("daysOfWeekIdx").
-      setOutputCol("encodedDaysOfWeek")
-    val uniqueCarrierEncoder = new OneHotEncoder().setInputCol("uniqueCarrierIndex").
-      setOutputCol("encodedCarrier")
-    val originEncoder = new OneHotEncoder().setInputCol("originIndexer").
-      setOutputCol("encodedOrigin")
-    val destEncoder = new StringIndexer().setInputCol("destIndexer").setOutputCol(
-      "encodedDest")
-
-
-    val vectorAssembler = new VectorAssembler().setInputCols(
-      Array("encodedMonth", "encodedDaysOfMonth", "encodedDaysOfWeek", "DepTime",
-        "encodedCarrier", "encodedOrigin", "encodedDest", "Distance")
-    ).setOutputCol("features")
-    val pipeline = new Pipeline().setStages(
-      Array(monthIndexer, daysOfMonthIndexer, daysOfWeekIndexer,
-        uniqueCarrierIndexer, originIndexer, destIndexer, monthEncoder, daysOfMonthEncoder,
-        daysOfWeekEncoder, uniqueCarrierEncoder, originEncoder, destEncoder, vectorAssembler))
-    pipeline
-  }
-
-  private def runPreprocessingPipeline(pipeline: Pipeline, trainingSet: DataFrame): DataFrame = {
-    pipeline.fit(trainingSet).transform(trainingSet).selectExpr(
-      "features", "case when dep_delayed_15min = true then 1.0 else 0.0 end as label")
-  }
 
   private def crossValidationWithXGBoost(
       xgbClassifier: XGBoostClassifier,
@@ -103,40 +57,36 @@ object AirlineClassifier {
 
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.parseFile(new File(args(0)))
-    val trainingPath = config.getString("me.codingcat.xgboost4j.airline.trainingPath")
+    val dataPath = config.getString("me.codingcat.xgboost4j.airline.dataPath")
     val trainingRounds = config.getInt("me.codingcat.xgboost4j.rounds")
     val numWorkers = config.getInt("me.codingcat.xgboost4j.numWorkers")
     val treeType = config.getString("me.codingcat.xgboost4j.treeMethod")
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
-    val dataSet = spark.read.parquet(trainingPath)
+    val dataSet = spark.read.parquet(dataPath)
     val Array(trainingSet, testSet) = dataSet.randomSplit(Array(0.8, 0.2))
-
-    val pipeline = buildPreprocessingPipeline()
-    val transformedTrainingSet = runPreprocessingPipeline(pipeline, trainingSet)
-    val transformedTestset = runPreprocessingPipeline(pipeline, testSet)
 
     if (args.length >= 2) {
       val xgbClassifier = new XGBoostClassifier(params)
       xgbClassifier.set(xgbClassifier.numRound, trainingRounds)
       xgbClassifier.set(xgbClassifier.numWorkers, numWorkers)
       xgbClassifier.set(xgbClassifier.treeMethod, treeType)
-      val bestModel = crossValidationWithXGBoost(xgbClassifier, transformedTrainingSet, args(1))
+      val bestModel = crossValidationWithXGBoost(xgbClassifier, trainingSet, args(1))
       println(s"best model: ${bestModel.extractParamMap()}")
       val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
-      println("eval results: " + eval.evaluate(bestModel.transform(transformedTestset)))
+      println("eval results: " + eval.evaluate(bestModel.transform(testSet)))
     } else {
       // directly training
-      transformedTrainingSet.cache().foreach(_ => Unit)
+      trainingSet.cache().foreach(_ => Unit)
       val startTime = System.nanoTime()
       val xgbParams = Utils.fromConfigToXGBParams(config)
       val xgbClassifier = new XGBoostClassifier(xgbParams)
       xgbClassifier.set(xgbClassifier.numRound, trainingRounds)
       xgbClassifier.set(xgbClassifier.numWorkers, numWorkers)
       xgbClassifier.set(xgbClassifier.treeMethod, treeType)
-      val xgbClassificationModel = xgbClassifier.fit(transformedTrainingSet)
+      val xgbClassificationModel = xgbClassifier.fit(trainingSet)
       println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
-      val resultDF = xgbClassificationModel.transform(transformedTestset)
+      val resultDF = xgbClassificationModel.transform(testSet)
       val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
       binaryClassificationEvaluator.setRawPredictionCol("probability").setLabelCol("label")
       println(s"=====test AUC: ${binaryClassificationEvaluator.evaluate(resultDF)}======")
