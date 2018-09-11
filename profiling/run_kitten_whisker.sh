@@ -10,6 +10,8 @@ PROJECT_DIR="$SCRIPT_DIR/../"
 cd $PROJECT_DIR
 
 if [ ! -d "KittenWhisker-release-0.1" ]; then
+  # delete leftovers
+  rm -rf release-0.1.tar.gz*
   # download kittenwhisker
   wget https://github.com/CodingCat/KittenWhisker/archive/release-0.1.tar.gz
   # uncompress tar ball
