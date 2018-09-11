@@ -29,8 +29,8 @@ spark-submit --class me.codingcat.xgboost4j.AirlineClassifier --num-executors 10
 --files conf/airline.conf,KittenWhisker/perf.conf \
 --driver-class-path $JAVA_HOME/lib/tools.jar \
 --jars KittenWhisker/target/kittenwhisker-0.1-SNAPSHOT-jar-with-dependencies.jar,$JAVA_HOME/lib/tools.jar \
---conf spark.driver.extraJavaOptions="-javaagent:kittenwhisker-0.1-SNAPSHOT-jar-with-dependencies.jar=waitingLength=20,targetDirectory=/flameperf/ -XX:+PreserveFramePointer" \
---conf spark.executor.extraJavaOptions="-javaagent:kittenwhisker-0.1-SNAPSHOT-jar-with-dependencies.jar=waitingLength=20,targetDirectory=/flameperf/ -XX:+PreserveFramePointer" \
+--conf spark.driver.extraJavaOptions="-javaagent:kittenwhisker-0.1-SNAPSHOT-jar-with-dependencies.jar=waitingLength=20,targetDirectory=./flameperf/ -XX:+PreserveFramePointer" \
+--conf spark.executor.extraJavaOptions="-javaagent:kittenwhisker-0.1-SNAPSHOT-jar-with-dependencies.jar=waitingLength=20,targetDirectory=./flameperf/ -XX:+PreserveFramePointer" \
 --conf spark.executor.extraClassPath=./tools.jar \
 --conf spark.driver.extraClassPath=./tools.jar \
 --master yarn-cluster --queue hadoop-adhoc target/scala-2.11/xgboost4j-spark-scalability-assembly-0.1-SNAPSHOT.jar ./airline.conf
