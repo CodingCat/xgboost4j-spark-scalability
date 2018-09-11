@@ -20,6 +20,10 @@ if [ ! -d "KittenWhisker" ]; then
   elif [[ "$OSTYPE" == "darwin"* ]]; then
     . dev/build-docker.sh
   fi
+else
+  # update KittenWhisker
+  cd KittenWhisker;
+  git pull
 fi
 
 # update command to start benchmark workload
