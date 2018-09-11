@@ -10,4 +10,5 @@ tar -zxvf release-0.1.tar.gz
 
 # run the script to start xgboost4j-spark benchmark workload
 
-
+cd KittenWhisker-release-0.1;
+. dev/build-docker.sh
