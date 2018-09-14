@@ -84,7 +84,7 @@ object AirlineClassifier {
       xgbClassifier.set(xgbClassifier.numRound, trainingRounds)
       xgbClassifier.set(xgbClassifier.numWorkers, numWorkers)
       xgbClassifier.set(xgbClassifier.treeMethod, treeType)
-      val xgbClassificationModel = xgbClassifier.fit(trainingSet)
+      val xgbClassificationModel = xgbClassifier.fit(trainingSet.repartition(numWorkers))
       println(s"===training time cost: ${(System.nanoTime() - startTime) / 1000.0 / 1000.0} ms")
       val resultDF = xgbClassificationModel.transform(testSet)
       val binaryClassificationEvaluator = new BinaryClassificationEvaluator()
