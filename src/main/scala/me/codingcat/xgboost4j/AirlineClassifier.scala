@@ -61,7 +61,7 @@ object AirlineClassifier {
     val trainingRounds = config.getInt("me.codingcat.xgboost4j.rounds")
     val numWorkers = config.getInt("me.codingcat.xgboost4j.numWorkers")
     val treeType = config.getString("me.codingcat.xgboost4j.treeMethod")
-    val nThread = config.getInt("me.codingcat.xgboost4j.numWorkers")
+    val nThread = config.getInt("me.codingcat.xgboost4j.nthread")
     val params = Utils.fromConfigToXGBParams(config)
     val spark = SparkSession.builder().getOrCreate()
     val dataSet = spark.read.parquet(dataPath)
