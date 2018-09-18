@@ -18,8 +18,8 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-library" % s"${scalaVersion.value}",
   "org.apache.spark" % "spark-sql_2.11" % s"$sparkVersion",
   "org.apache.spark" % "spark-mllib_2.11" % s"$sparkVersion",
-  "net.java.dev.jets3t" % "jets3t" % "0.9.4",
-  "ml.dmlc" % "xgboost4j-spark" % "0.80")
+  "net.java.dev.jets3t" % "jets3t" % "0.9.4")//,
+//  "ml.dmlc" % "xgboost4j-spark" % "0.80")
 
 parallelExecution in Test := false
 
