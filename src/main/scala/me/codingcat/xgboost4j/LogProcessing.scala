@@ -25,11 +25,16 @@ object LogProcessing {
   private def getSummaryTime(path: String): mutable.HashMap[Int, Long] = {
     val map = new mutable.HashMap[Int, Long]
     for (line <- Source.fromFile(path).getLines() if line.contains("cost (summary)")) {
-      val array = line.split(" ")
-      val indexOfTime = array.indexOf("rabit") - 1
-      val time = array(indexOfTime).toLong
-      val rabitRank = array(array.indexOf("rank:") + 1).toInt
-      map += rabitRank -> time
+      try {
+        val array = line.split(" ")
+        val indexOfTime = array.indexOf("rabit") - 1
+        val time = array(indexOfTime).toLong
+        val rabitRank = array(array.indexOf("rank:") + 1).toInt
+        map += rabitRank -> time
+      } catch {
+        case x: Throwable =>
+          // ignore
+      }
     }
     map
   }
@@ -37,11 +42,16 @@ object LogProcessing {
   private def getHistTime(path: String): mutable.HashMap[Int, Long] = {
     val map = new mutable.HashMap[Int, Long]
     for (line <- Source.fromFile(path).getLines() if line.contains("cost (hist)")) {
-      val array = line.split(" ")
-      val indexOfTime = array.indexOf("rabit") - 1
-      val time = array(indexOfTime).toLong
-      val rabitRank = array(array.indexOf("rank:") + 1).toInt
-      map += rabitRank -> time
+      try {
+        val array = line.split(" ")
+        val indexOfTime = array.indexOf("rabit") - 1
+        val time = array(indexOfTime).toLong
+        val rabitRank = array(array.indexOf("rank:") + 1).toInt
+        map += rabitRank -> time
+      } catch {
+        case x: Throwable =>
+        // ignore
+      }
     }
     map
   }
