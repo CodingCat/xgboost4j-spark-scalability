@@ -11,15 +11,21 @@ val sparkVersion = "2.3.0"
 
 resolvers += "GitHub Repo" at "https://raw.githubusercontent.com/CodingCat/xgboost/maven-repo/"
 
-libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "2.2.1" % "test",
+val commonDeps = Seq("org.scalatest" %% "scalatest" % "2.2.1" % "test",
   "org.scalatest" % "scalatest_2.11" % "3.0.1",
   "com.typesafe" % "config" % "1.3.1",
-  "org.scala-lang" % "scala-library" % s"${scalaVersion.value}",
+  "org.scala-lang" % "scala-library" % s"$scalaVersion",
   "org.apache.spark" % "spark-sql_2.11" % s"$sparkVersion",
   "org.apache.spark" % "spark-mllib_2.11" % s"$sparkVersion",
-  "net.java.dev.jets3t" % "jets3t" % "0.9.4",
-  "ml.dmlc" % "xgboost4j-spark" % "0.80")
+  "net.java.dev.jets3t" % "jets3t" % "0.9.4")
+
+libraryDependencies ++= {
+  if (!System.getProperty("build_upstream", "false").toBoolean) {
+    commonDeps :+ "ml.dmlc" % "xgboost4j-spark" % "0.80"
+  } else {
+    commonDeps
+  }
+}
 
 parallelExecution in Test := false
 
