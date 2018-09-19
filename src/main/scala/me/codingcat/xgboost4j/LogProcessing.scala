@@ -71,6 +71,7 @@ object LogProcessing {
       } catch {
         case x: Throwable =>
         // ignore
+          println("ERROR")
       }
     }
     list.groupBy(_._1).map {
