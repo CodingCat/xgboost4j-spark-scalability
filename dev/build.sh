@@ -26,4 +26,4 @@ cp -v $PROJECT_DIR/xgboost_upstream/jvm-packages/xgboost4j-spark/target/xgboost4
 
 # build
 cd $PROJECT_DIR;
-sbt assembly -Dbuild_upstream=true
+sbt -Dbuild_upstream=true clean assembly
