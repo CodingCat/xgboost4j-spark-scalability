@@ -61,7 +61,7 @@ object LogProcessing {
 
   private def getPercentage(path: String) = {
     val list = new ListBuffer[(Int, Double)]
-    for (line <- Source.fromFile(path).getLines() if line.contains("cost (hist)")) {
+    for (line <- Source.fromFile(path).getLines() if line.contains("current grow_tree time cost")) {
       try {
         val array = line.split(" ")
         val ratioField = array.indexOf("I/O ratio:")
