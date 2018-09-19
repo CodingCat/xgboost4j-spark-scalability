@@ -64,14 +64,13 @@ object LogProcessing {
     for (line <- Source.fromFile(path).getLines() if line.contains("current grow_tree time cost")) {
       try {
         val array = line.split(" ")
-        val ratioField = array.indexOf("I/O ratio:")
+        val ratioField = array.indexOf("ratio:")
         val ratio = array(ratioField).split(":")(1).toDouble
-        val rank = array(array.indexOf("rabit rank:") + 1).toInt
+        val rank = array(array.indexOf("rank:") + 1).toInt
         list += rank -> ratio
       } catch {
         case x: Throwable =>
         // ignore
-          println("ERROR")
       }
     }
     list.groupBy(_._1).map {
