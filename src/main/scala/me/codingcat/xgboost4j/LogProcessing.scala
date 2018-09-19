@@ -18,10 +18,12 @@
 package me.codingcat.xgboost4j
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
 object LogProcessing {
 
+  /*
   private def getSummaryTime(path: String): mutable.HashMap[Int, Long] = {
     val map = new mutable.HashMap[Int, Long]
     for (line <- Source.fromFile(path).getLines() if line.contains("cost (summary)")) {
@@ -55,9 +57,36 @@ object LogProcessing {
     }
     map
   }
+  */
+
+  private def getPercentage(path: String) = {
+    val list = new ListBuffer[(Int, Double)]
+    for (line <- Source.fromFile(path).getLines() if line.contains("cost (hist)")) {
+      try {
+        val array = line.split(" ")
+        val ratioField = array.indexOf("I/O ratio:")
+        val ratio = array(ratioField).split(":")(1).toDouble
+        val rank = array(array.indexOf("rabit rank:") + 1).toInt
+        list += rank -> ratio
+      } catch {
+        case x: Throwable =>
+        // ignore
+      }
+    }
+    list.groupBy(_._1).map {
+      case (key, ratios) =>
+        (key, ratios.map(_._2).sum * 1.0 / ratios.size)
+    }
+  }
 
   def main(args: Array[String]): Unit = {
     val path = args(0)
+    val percentages = getPercentage(path)
+    percentages.toList.sortBy(_._1).foreach {
+      case (rank, ratio) =>
+        println(s"$rank $ratio")
+    }
+    /*
     val summaryMap = getSummaryTime(path)
     val histMap = getHistTime(path)
     summaryMap.toList.sortBy(_._1).foreach{ case (rabitRank, summaryTime) =>
@@ -65,5 +94,6 @@ object LogProcessing {
     println("====================================")
     histMap.toList.sortBy(_._1).foreach{ case (rabitRank, histTime) =>
       println(s"$rabitRank $histTime")}
+      */
   }
 }
