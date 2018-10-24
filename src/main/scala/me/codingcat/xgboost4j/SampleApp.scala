@@ -22,7 +22,7 @@ import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
 import org.apache.spark.sql.SparkSession
 
 object SampleApp {
-  def main(): Unit = {
+  def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder().getOrCreate()
     val df_sample = spark.read.parquet("/user/gorkem/sample_dataset")
     val paramMapXgb8 = Map(
