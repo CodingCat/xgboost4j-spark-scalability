@@ -24,7 +24,7 @@ import org.apache.spark.sql.SparkSession
 object SampleApp {
   def main(): Unit = {
     val spark = SparkSession.builder().getOrCreate()
-    val df_sample = spark.read.parquet("/user/nanzhu/sample_dataset")
+    val df_sample = spark.read.parquet("/user/gorkem/sample_dataset")
     val paramMapXgb8 = Map(
       "eta" -> 0.05f,
       "max_depth" -> 6,
