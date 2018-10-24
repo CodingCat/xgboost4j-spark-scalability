@@ -31,7 +31,8 @@ object SampleApp {
       "objective" -> "binary:logistic",
       "colsample_bytree" -> 0.3,
       "num_round" -> 1000,
-      "num_workers" -> 375 )
+      "num_workers" -> 100,
+      "nthread" -> 4)
 
     val xgbClassifier = new XGBoostClassifier(paramMapXgb8)
       .setFeaturesCol("features")
