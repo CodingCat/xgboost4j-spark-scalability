@@ -78,6 +78,8 @@ object AirlineClassifier {
       val eval = new BinaryClassificationEvaluator().setRawPredictionCol("prediction")
       println("eval results: " + eval.evaluate(bestModel.transform(testSet)))
     } else {
+      val dataSet = spark.read.parquet(dataPath)
+      val Array(trainingSet, testSet) = dataSet.randomSplit(Array(0.8, 0.2))
       // directly training
       trainingSet.cache().foreach(_ => Unit)
       val startTime = System.nanoTime()
