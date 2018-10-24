@@ -25,14 +25,16 @@ object SampleApp {
   def main(args: Array[String]): Unit = {
     val spark = SparkSession.builder().getOrCreate()
     val df_sample = spark.read.parquet("/user/gorkem/sample_dataset")
+    val num_workers = args(0).toInt
+    val nthread = args(1).toInt
     val paramMapXgb8 = Map(
       "eta" -> 0.05f,
       "max_depth" -> 6,
       "objective" -> "binary:logistic",
       "colsample_bytree" -> 0.3,
       "num_round" -> 1000,
-      "num_workers" -> 100,
-      "nthread" -> 4)
+      "num_workers" -> num_workers,
+      "nthread" -> nthread)
 
     val xgbClassifier = new XGBoostClassifier(paramMapXgb8)
       .setFeaturesCol("features")
