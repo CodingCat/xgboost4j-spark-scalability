@@ -7,7 +7,7 @@ organization := "com.microsoft"
 
 scalaVersion := "2.11.8"
 
-val sparkVersion = "2.3.0"
+val sparkVersion = "2.3.2"
 
 resolvers += "GitHub Repo" at "https://raw.githubusercontent.com/CodingCat/xgboost/maven-repo/"
 
@@ -21,7 +21,7 @@ val commonDeps = Seq("org.scalatest" %% "scalatest" % "2.2.1" % "test",
 
 libraryDependencies ++= {
   if (!System.getProperty("build_upstream", "false").toBoolean) {
-    commonDeps :+ "ml.dmlc" % "xgboost4j-spark" % "0.80"
+    commonDeps :+ "ml.dmlc" % "xgboost4j-spark" % "0.81"
   } else {
     commonDeps
   }
