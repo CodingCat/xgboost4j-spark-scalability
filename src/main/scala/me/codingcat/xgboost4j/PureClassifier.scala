@@ -37,7 +37,6 @@ object PureClassifier {
     xgbRegressor.setMaxDepth(10)
     xgbRegressor.setNumRound(500)
     xgbRegressor.setNumWorkers(200)
-    xgbRegressor.setNthread(4)
     val startTS = System.currentTimeMillis()
     val xgbRegressionModel = xgbRegressor.fit(trainingSet)
     println(s"finished training in ${System.currentTimeMillis() - startTS}")
