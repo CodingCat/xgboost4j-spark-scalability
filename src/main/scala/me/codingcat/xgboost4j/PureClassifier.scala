@@ -44,6 +44,8 @@ object PureClassifier {
     val trainingSet = spark.read.parquet(inputPath).select(featureCol, labelCol).sample(ratio)
 
     val xgbRegressor = new XGBoostRegressor(xgbParamMap)
+    xgbRegressor.setFeaturesCol(featureCol)
+    xgbRegressor.setLabelCol(labelCol)
 
     val startTS = System.currentTimeMillis()
     val xgbRegressionModel = xgbRegressor.fit(trainingSet)
