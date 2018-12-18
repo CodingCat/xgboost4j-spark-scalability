@@ -39,8 +39,8 @@ object PureClassifier {
     val xgbParamMap = {
       val lb = new ListBuffer[(String, String)]
       for (line <- Source.fromFile(configFile).getLines()) {
-        val (k, v) = line.split("=")
-        lb += (k, v)
+        val array = line.split("=")
+        lb += array(0) -> array(1)
       }
       lb.toMap
     }
