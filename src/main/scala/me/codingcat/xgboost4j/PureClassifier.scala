@@ -19,6 +19,9 @@ package me.codingcat.xgboost4j
 
 import java.io.File
 
+import scala.collection.mutable.ListBuffer
+import scala.io.Source
+
 import com.typesafe.config.ConfigFactory
 import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
 
@@ -33,14 +36,14 @@ object PureClassifier {
     val ratio = args(3).toDouble
     val configFile = args(4)
 
-    val conf = ConfigFactory.parseFile(new File(configFile))
-    import scala.collection.JavaConverters._
-
-    val xgbParamMap = conf.entrySet().asScala.map {
-      entry =>
-        println("key:" + entry.getKey)
-        entry.getKey -> conf.getString(entry.getKey)
-    }.toMap
+    val xgbParamMap = {
+      val lb = new ListBuffer[(String, String)]
+      for (line <- Source.fromFile(configFile).getLines()) {
+        val (k, v) = line.split("=")
+        lb += (k, v)
+      }
+      lb.toMap
+    }
 
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(inputPath).select(featureCol, labelCol).sample(ratio)
