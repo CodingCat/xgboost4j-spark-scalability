@@ -35,8 +35,10 @@ object PureClassifier {
 
     val conf = ConfigFactory.parseFile(new File(configFile))
     import scala.collection.JavaConverters._
+
     val xgbParamMap = conf.entrySet().asScala.map {
       entry =>
+        println("key:" + entry.getKey)
         entry.getKey -> conf.getString(entry.getKey)
     }.toMap
 
