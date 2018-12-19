@@ -17,6 +17,12 @@
 
 package me.codingcat.xgboost4j
 
+import java.io.File
+
+import scala.collection.mutable.ListBuffer
+import scala.io.Source
+
+import com.typesafe.config.ConfigFactory
 import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
 
 import org.apache.spark.sql.SparkSession
@@ -27,16 +33,26 @@ object PureClassifier {
     val featureCol = args(0)
     val labelCol = args(1)
     val inputPath = args(2)
+    val ratio = args(3).toDouble
+    val configFile = args(4)
+
+    val xgbParamMap = {
+      val lb = new ListBuffer[(String, String)]
+      for (line <- Source.fromFile(configFile).getLines()) {
+        val array = line.split("=")
+        lb += array(0) -> array(1)
+      }
+      lb.toMap
+    }
 
     val spark = SparkSession.builder().getOrCreate()
+    val trainingSet = spark.read.parquet(inputPath).select(featureCol, labelCol).sample(ratio)
 
-    val trainingSet = spark.read.parquet(inputPath).select(featureCol, labelCol)
+    val xgbRegressor = new XGBoostRegressor(xgbParamMap)
+    println(xgbParamMap)
+    xgbRegressor.setFeaturesCol(featureCol)
+    xgbRegressor.setLabelCol(labelCol)
 
-    val xgbRegressor = new XGBoostRegressor()
-    xgbRegressor.setFeaturesCol(featureCol).setLabelCol(labelCol)
-    xgbRegressor.setMaxDepth(10)
-    xgbRegressor.setNumRound(500)
-    xgbRegressor.setNumWorkers(200)
     val startTS = System.currentTimeMillis()
     val xgbRegressionModel = xgbRegressor.fit(trainingSet)
     println(s"finished training in ${System.currentTimeMillis() - startTS}")
