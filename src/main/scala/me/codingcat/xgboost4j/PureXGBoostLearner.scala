@@ -17,24 +17,22 @@
 
 package me.codingcat.xgboost4j
 
-import java.io.File
-
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
-import com.typesafe.config.ConfigFactory
-import ml.dmlc.xgboost4j.scala.spark.XGBoostRegressor
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassifier, XGBoostRegressor}
 
 import org.apache.spark.sql.SparkSession
 
-object PureClassifier {
+object PureXGBoostLearner {
 
   def main(args: Array[String]): Unit = {
     val featureCol = args(0)
     val labelCol = args(1)
     val inputPath = args(2)
     val ratio = args(3).toDouble
-    val configFile = args(4)
+    val isRegression = args(4).toBoolean
+    val configFile = args(5)
 
     val xgbParamMap = {
       val lb = new ListBuffer[(String, String)]
@@ -48,13 +46,17 @@ object PureClassifier {
     val spark = SparkSession.builder().getOrCreate()
     val trainingSet = spark.read.parquet(inputPath).select(featureCol, labelCol).sample(ratio)
 
-    val xgbRegressor = new XGBoostRegressor(xgbParamMap)
-    println(xgbParamMap)
-    xgbRegressor.setFeaturesCol(featureCol)
-    xgbRegressor.setLabelCol(labelCol)
+    val xgbLearner = if (isRegression) {
+      new XGBoostRegressor(xgbParamMap)
+    } else {
+      new XGBoostClassifier(xgbParamMap)
+    }
+
+    xgbLearner.setFeaturesCol(featureCol)
+    xgbLearner.setLabelCol(labelCol)
 
     val startTS = System.currentTimeMillis()
-    val xgbRegressionModel = xgbRegressor.fit(trainingSet)
+    val xgbRegressionModel = xgbLearner.fit(trainingSet)
     println(s"finished training in ${System.currentTimeMillis() - startTS}")
   }
 }
