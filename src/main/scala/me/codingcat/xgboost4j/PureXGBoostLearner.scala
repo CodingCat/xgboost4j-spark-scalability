@@ -59,6 +59,6 @@ object PureXGBoostLearner {
     val startTS = System.currentTimeMillis()
     val xgbModel = xgbLearner.fit(trainingSet)
     println(s"finished training in ${System.currentTimeMillis() - startTS}")
-    xgbModel.write.save(modelOutputPath)
+    xgbModel.write.overwrite()save(modelOutputPath)
   }
 }
