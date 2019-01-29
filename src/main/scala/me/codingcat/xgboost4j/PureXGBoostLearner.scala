@@ -33,6 +33,7 @@ object PureXGBoostLearner {
     val ratio = args(3).toDouble
     val isRegression = args(4).toBoolean
     val configFile = args(5)
+    val modelOutputPath = args(6)
 
     val xgbParamMap = {
       val lb = new ListBuffer[(String, String)]
@@ -56,7 +57,8 @@ object PureXGBoostLearner {
     xgbLearner.setLabelCol(labelCol)
 
     val startTS = System.currentTimeMillis()
-    val xgbRegressionModel = xgbLearner.fit(trainingSet)
+    val xgbModel = xgbLearner.fit(trainingSet)
     println(s"finished training in ${System.currentTimeMillis() - startTS}")
+    xgbModel.write.save(modelOutputPath)
   }
 }
