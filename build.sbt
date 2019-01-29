@@ -3,7 +3,7 @@
 
 name := "xgboost4j-spark-scalability"
 
-organization := "com.microsoft"
+organization := "me.codingcat"
 
 scalaVersion := "2.11.8"
 
