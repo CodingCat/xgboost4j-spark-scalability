@@ -37,6 +37,7 @@ object PureXGBoostPredictor {
     for (i <- 1 until replicationFactor) {
       finalDF = finalDF.union(inputDF)
     }
-    xgbModel.transform(finalDF).repartition(outputPartition).write.parquet(outputPath)
+    xgbModel.transform(finalDF).repartition(outputPartition).write.mode("overwrite").
+      parquet(outputPath)
   }
 }
