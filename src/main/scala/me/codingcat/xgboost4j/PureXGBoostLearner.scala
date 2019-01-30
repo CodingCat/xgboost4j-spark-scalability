@@ -22,6 +22,7 @@ import scala.io.Source
 
 import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassifier, XGBoostRegressor}
 
+import org.apache.spark.ml.evaluation.BinaryClassificationEvaluator
 import org.apache.spark.sql.SparkSession
 
 object PureXGBoostLearner {
@@ -30,7 +31,7 @@ object PureXGBoostLearner {
     val featureCol = args(0)
     val labelCol = args(1)
     val inputPath = args(2)
-    val ratio = args(3).toDouble
+    val trainingRatio = args(3).toDouble
     val isRegression = args(4).toBoolean
     val configFile = args(5)
     val modelOutputPath = args(6)
@@ -45,20 +46,23 @@ object PureXGBoostLearner {
     }
 
     val spark = SparkSession.builder().getOrCreate()
-    val trainingSet = spark.read.parquet(inputPath).select(featureCol, labelCol).sample(ratio)
+    val Array(trainingSet, testSet) = spark.read.parquet(inputPath).
+        select(featureCol, labelCol).randomSplit(Array(trainingRatio, 1 - trainingRatio))
 
     val xgbLearner = if (isRegression) {
       new XGBoostRegressor(xgbParamMap)
     } else {
       new XGBoostClassifier(xgbParamMap)
     }
-
+    if (trainingRatio < 1) {
+      xgbLearner.setEvalSets(Map("test" -> testSet))
+    }
     xgbLearner.setFeaturesCol(featureCol)
     xgbLearner.setLabelCol(labelCol)
 
     val startTS = System.currentTimeMillis()
     val xgbModel = xgbLearner.fit(trainingSet)
     println(s"finished training in ${System.currentTimeMillis() - startTS}")
-    xgbModel.write.overwrite()save(modelOutputPath)
+    xgbModel.write.overwrite().save(modelOutputPath)
   }
 }
