@@ -7,7 +7,7 @@ organization := "me.codingcat"
 
 scalaVersion := "2.11.8"
 
-val sparkVersion = "2.3.2"
+val sparkVersion = "2.3.3"
 
 resolvers += "GitHub Repo" at "https://raw.githubusercontent.com/CodingCat/xgboost/maven-repo/"
 
