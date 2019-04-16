@@ -14,9 +14,9 @@ resolvers += "GitHub Repo" at "https://raw.githubusercontent.com/CodingCat/xgboo
 val commonDeps = Seq("org.scalatest" %% "scalatest" % "2.2.1" % "test",
   "org.scalatest" % "scalatest_2.11" % "3.0.1",
   "com.typesafe" % "config" % "1.3.1",
-  "org.scala-lang" % "scala-library" % s"$scalaVersion",
-  "org.apache.spark" % "spark-sql_2.11" % s"$sparkVersion",
-  "org.apache.spark" % "spark-mllib_2.11" % s"$sparkVersion",
+  "org.scala-lang" % "scala-library" % s"$scalaVersion" % "provided",
+  "org.apache.spark" % "spark-sql_2.11" % s"$sparkVersion" % "provided",
+  "org.apache.spark" % "spark-mllib_2.11" % s"$sparkVersion" % "provided",
   "net.java.dev.jets3t" % "jets3t" % "0.9.4")
 
 libraryDependencies ++= {
