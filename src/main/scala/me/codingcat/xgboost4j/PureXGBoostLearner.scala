@@ -47,7 +47,8 @@ object PureXGBoostLearner {
 
     val spark = SparkSession.builder().getOrCreate()
     val Array(trainingSet, testSet) = spark.read.parquet(inputPath).
-        select(featureCol, labelCol).randomSplit(Array(trainingRatio, 1 - trainingRatio))
+        select(featureCol, xgbParamMap("group_col"),
+          labelCol).randomSplit(Array(trainingRatio, 1 - trainingRatio))
 
     val xgbLearner = if (isRegression) {
       new XGBoostRegressor(xgbParamMap)
