@@ -17,7 +17,7 @@
 
 package me.codingcat.xgboost4j
 
-import ml.dmlc.xgboost4j.scala.spark.XGBoostClassificationModel
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 
 import org.apache.spark.sql.SparkSession
 
@@ -31,7 +31,14 @@ object PureXGBoostPredictor {
     val outputPath = args(3)
     val outputPartition = args(4).toInt
 
-    val xgbModel = XGBoostClassificationModel.load(modelPath)
+    val xgbModel = {
+      try {
+        XGBoostClassificationModel.load(modelPath)
+      } catch {
+        case _: IllegalArgumentException =>
+          XGBoostRegressionModel.load(modelPath)
+      }
+    }
     val inputDF = spark.read.parquet(inputPath)
     var finalDF = inputDF
     for (i <- 1 until replicationFactor) {
