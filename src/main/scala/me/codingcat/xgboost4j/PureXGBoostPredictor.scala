@@ -19,6 +19,8 @@ package me.codingcat.xgboost4j
 
 import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostRegressionModel}
 
+import org.apache.spark.ml.evaluation.{BinaryClassificationEvaluator, MulticlassClassificationEvaluator, RegressionEvaluator}
+import org.apache.spark.ml.param
 import org.apache.spark.sql.SparkSession
 
 object PureXGBoostPredictor {
@@ -30,13 +32,17 @@ object PureXGBoostPredictor {
     val replicationFactor = args(2).toInt
     val outputPath = args(3)
     val outputPartition = args(4).toInt
-
+    var taskType = ""
     val xgbModel = {
       try {
-        XGBoostClassificationModel.load(modelPath)
+        val model = XGBoostClassificationModel.load(modelPath)
+        taskType = "classification"
+        model
       } catch {
         case _: IllegalArgumentException =>
-          XGBoostRegressionModel.load(modelPath)
+          val model = XGBoostRegressionModel.load(modelPath)
+          taskType = "regression"
+          model
       }
     }
     val inputDF = spark.read.parquet(inputPath)
@@ -44,7 +50,25 @@ object PureXGBoostPredictor {
     for (i <- 1 until replicationFactor) {
       finalDF = finalDF.union(inputDF)
     }
-    xgbModel.transform(finalDF).repartition(outputPartition).write.mode("overwrite").
-      parquet(outputPath)
+    val metrics = if (taskType == "regression") {
+      new RegressionEvaluator()
+        .setMetricName("rmse")
+        .setLabelCol(xgbModel.getLabelCol)
+        .evaluate(xgbModel.transform(finalDF))
+    } else if (taskType == "classification") {
+      val numOfCls = xgbModel.asInstanceOf[XGBoostClassificationModel].numClasses
+      if (numOfCls == 2) {
+        new BinaryClassificationEvaluator()
+          .setMetricName("areaUnderROC")
+          .setLabelCol(xgbModel.getLabelCol)
+          .evaluate(xgbModel.transform(finalDF))
+      } else {
+        new MulticlassClassificationEvaluator()
+          .setMetricName("f1")
+          .setLabelCol(xgbModel.getLabelCol)
+          .evaluate(xgbModel.transform(finalDF))
+      }
+    }
+    println(s"evaluation metrics: $metrics")
   }
 }
