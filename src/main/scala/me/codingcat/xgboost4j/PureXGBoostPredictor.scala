@@ -49,7 +49,7 @@ object PureXGBoostPredictor {
     val inputDF = spark.read.parquet(inputPath)
     var finalDF = inputDF
     if (replicationFactor > 1) {
-      for (i <- 1 until replicationFactor) {
+      for (i <- 1 until replicationFactor.toInt) {
         finalDF = finalDF.union(inputDF)
       }
     } else {
