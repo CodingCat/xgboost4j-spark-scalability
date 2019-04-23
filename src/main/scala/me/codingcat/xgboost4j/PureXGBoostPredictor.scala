@@ -30,17 +30,18 @@ object PureXGBoostPredictor {
     val modelPath = args(0)
     val inputPath = args(1)
     val replicationFactor = args(2).toInt
-    val outputPath = args(3)
-    val outputPartition = args(4).toInt
+    val useExternalMemory = args(3).toBoolean
     var taskType = ""
     val xgbModel = {
       try {
         val model = XGBoostClassificationModel.load(modelPath)
+        model.set(model.useExternalMemory, true)
         taskType = "classification"
         model
       } catch {
         case _: IllegalArgumentException =>
           val model = XGBoostRegressionModel.load(modelPath)
+          model.set(model.useExternalMemory, true)
           taskType = "regression"
           model
       }
