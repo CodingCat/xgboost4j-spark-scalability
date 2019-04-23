@@ -29,7 +29,7 @@ object PureXGBoostPredictor {
     val spark = SparkSession.builder().getOrCreate()
     val modelPath = args(0)
     val inputPath = args(1)
-    val replicationFactor = args(2).toInt
+    val replicationFactor = args(2).toDouble
     val useExternalMemory = args(3).toBoolean
     var taskType = ""
     val xgbModel = {
@@ -48,8 +48,12 @@ object PureXGBoostPredictor {
     }
     val inputDF = spark.read.parquet(inputPath)
     var finalDF = inputDF
-    for (i <- 1 until replicationFactor) {
-      finalDF = finalDF.union(inputDF)
+    if (replicationFactor > 1) {
+      for (i <- 1 until replicationFactor) {
+        finalDF = finalDF.union(inputDF)
+      }
+    } else {
+      finalDF = inputDF.sample(replicationFactor)
     }
     val metrics = if (taskType == "regression") {
       new RegressionEvaluator()
