@@ -45,10 +45,16 @@ object PureXGBoostLearner {
       lb.toMap
     }
 
+    val columnsOtherThanFeature = if (xgbParamMap.contains("group_col")) {
+      Seq(xgbParamMap("group_col"), labelCol)
+    } else {
+      Seq(labelCol)
+    }
+
     val spark = SparkSession.builder().getOrCreate()
     val Array(trainingSet, testSet) = spark.read.parquet(inputPath).
-        select(featureCol, xgbParamMap("group_col"),
-          labelCol).randomSplit(Array(trainingRatio, 1 - trainingRatio))
+        select(featureCol, columnsOtherThanFeature: _*).
+      randomSplit(Array(trainingRatio, 1 - trainingRatio))
 
     val xgbLearner = if (isRegression) {
       new XGBoostRegressor(xgbParamMap)
