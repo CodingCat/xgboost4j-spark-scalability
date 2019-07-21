@@ -46,6 +46,7 @@ object PureXGBoostPredictor {
           model
       }
     }
+    xgbModel.set(xgbModel.missing, 0.0f)
     val inputDF = spark.read.parquet(inputPath)
     var finalDF = inputDF
     if (replicationFactor > 1) {
