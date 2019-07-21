@@ -21,7 +21,7 @@ val commonDeps = Seq("org.scalatest" %% "scalatest" % "2.2.1" % "test",
 
 libraryDependencies ++= {
   if (!System.getProperty("build_upstream", "false").toBoolean) {
-    commonDeps :+ "ml.dmlc" % "xgboost4j-spark" % "0.82"
+    commonDeps :+ "ml.dmlc" % "xgboost4j-spark" % "0.90"
   } else {
     commonDeps
   }
