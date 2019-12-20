@@ -35,6 +35,11 @@ object PureXGBoostLearner {
     val isRegression = args(4).toBoolean
     val configFile = args(5)
     val modelOutputPath = args(6)
+    val repeated = if (args.length > 7) {
+      args(7).toInt
+    } else {
+      1
+    }
 
     val xgbParamMap = {
       val lb = new ListBuffer[(String, String)]
@@ -68,8 +73,10 @@ object PureXGBoostLearner {
     xgbLearner.setLabelCol(labelCol)
 
     val startTS = System.currentTimeMillis()
-    val xgbModel = xgbLearner.fit(trainingSet)
-    println(s"finished training in ${System.currentTimeMillis() - startTS}")
-    xgbModel.write.overwrite().save(modelOutputPath)
+    for (i <- 0 until repeated) {
+      val xgbModel = xgbLearner.fit(trainingSet)
+      println(s"finished training in ${System.currentTimeMillis() - startTS}")
+      xgbModel.write.overwrite().save(modelOutputPath)
+    }
   }
 }
